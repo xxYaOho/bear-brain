@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .config import load_settings
+from .daily_hook import DailyHookEntry, append_daily_entry, should_write_daily
 from .docs_publish import publish_doc
 from .memory_store import ensure_schema
 from .promote import apply_promote_to_files
@@ -58,6 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     publish.add_argument("--project-root", type=Path, default=Path.cwd())
     publish.add_argument("--doc-type", required=True)
 
+    append_daily = subparsers.add_parser("append-daily")
+    append_daily.add_argument("--project-root", type=Path, default=Path.cwd())
+    append_daily.add_argument("--did", required=True)
+    append_daily.add_argument("--found", required=True)
+    append_daily.add_argument("--judgment", required=True)
+
     return parser
 
 
@@ -70,6 +77,18 @@ def _bootstrap(project_root: Path) -> int:
 
 def _publish_doc(project_root: Path, doc_type: str) -> int:
     publish_doc(project_root, doc_type)
+    return 0
+
+
+def _append_daily(project_root: Path, did: str, found: str, judgment: str) -> int:
+    settings = load_settings(project_root)
+    if not should_write_daily(project_root, settings.daily_global):
+        return 0
+
+    append_daily_entry(
+        project_root,
+        DailyHookEntry(did=did, found=found, judgment=judgment),
+    )
     return 0
 
 
@@ -127,6 +146,8 @@ def main() -> int:
         )
     if args.command == "publish-doc":
         return _publish_doc(args.project_root, args.doc_type)
+    if args.command == "append-daily":
+        return _append_daily(args.project_root, args.did, args.found, args.judgment)
 
     parser.print_help()
     return 0

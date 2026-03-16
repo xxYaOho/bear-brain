@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 from subprocess import run
 
@@ -301,3 +302,63 @@ def test_cli_promote_yesterday_discovers_latest_daily_and_memory(tmp_path: Path)
     assert result.returncode == 0
     assert "done-promoted" in latest_daily.read_text(encoding="utf-8")
     assert "rule:daily-before-new-day" in memory_path.read_text(encoding="utf-8")
+
+
+def test_cli_append_daily_skips_non_bear_brain_project_by_default(tmp_path: Path) -> None:
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "memory_worker.py",
+            "append-daily",
+            "--project-root",
+            str(tmp_path),
+            "--did",
+            "完成代码实现",
+            "--found",
+            "发现默认路径还不够顺手",
+            "--judgment",
+            "需要继续收敛 hook",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert not (tmp_path / "daily").exists()
+
+
+def test_cli_append_daily_uses_global_flag_for_any_project(tmp_path: Path) -> None:
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "memory_worker.py",
+            "append-daily",
+            "--project-root",
+            str(tmp_path),
+            "--did",
+            "完成代码实现",
+            "--found",
+            "发现默认路径还不够顺手",
+            "--judgment",
+            "需要继续收敛 hook",
+        ],
+        capture_output=True,
+        text=True,
+        env={
+            "PATH": __import__("os").environ["PATH"],
+            "HOME": __import__("os").environ.get("HOME", ""),
+            "BEAR_BRAIN_DAILY_GLOBAL": "true",
+        },
+    )
+
+    assert result.returncode == 0
+    daily_path = tmp_path / "daily" / f"{date.today().isoformat()}.md"
+    assert daily_path.exists()
+    daily_text = daily_path.read_text(encoding="utf-8")
+    assert "完成代码实现" in daily_text
+    assert "发现默认路径还不够顺手" in daily_text
+    assert "需要继续收敛 hook" in daily_text
