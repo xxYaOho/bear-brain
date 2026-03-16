@@ -1,0 +1,4 @@
+[
+  {"query": "memory default entry point", "expected_mode": "memory_db"},
+  {"query": "repo scoped implementation", "expected_mode": "docs_scope"}
+]
