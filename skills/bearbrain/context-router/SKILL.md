@@ -1,5 +1,5 @@
 ---
-name: bearbrain/context-router
+name: context-router
 description: 当 agent 需要查找任何 Bear-Brain 信息时，先用本 skill 决定查什么、按什么顺序查。当用户或 agent 发起任何检索请求时，本 skill 是搜索的前置路由层。通常在调用 bearbrain/search 之前使用。如果已知 note ID，可以跳过本 skill 直接用 note_refs 模式。
 ---
 
@@ -19,13 +19,13 @@ description: 当 agent 需要查找任何 Bear-Brain 信息时，先用本 skill
 
 ## 切换信号
 
-| 信号 | 识别方式 | 切换到 |
-| --- | --- | --- |
-| 显式 note ID | 用户提供了 UUID 格式的 ID | `note_refs` |
-| Bear 内链 | 用户提供了 `[[笔记标题]]` 格式 | `note_refs` |
+| 信号                                | 识别方式                          | 切换到       |
+| ----------------------------------- | --------------------------------- | ------------ |
+| 显式 note ID                        | 用户提供了 UUID 格式的 ID         | `note_refs`  |
+| Bear 内链                           | 用户提供了 `[[笔记标题]]` 格式    | `note_refs`  |
 | 明确 repo / workstream 且需项目真相 | 用户提到了具体项目名或 workstream | `docs_scope` |
-| 多标签过滤 | 用户要求按多个 tag 交叉查找 | `tags_and` |
-| 需要交叉验证 | 用户要求从多个来源对比 | `hybrid` |
+| 多标签过滤                          | 用户要求按多个 tag 交叉查找       | `tags_and`   |
+| 需要交叉验证                        | 用户要求从多个来源对比            | `hybrid`     |
 
 ## 路由决策流程
 

@@ -1,5 +1,5 @@
 ---
-name: bearbrain/workstream
+name: workstream
 description: 创建或维护工作容器笔记时使用。当用户说"开一个新项目"、"记录一下这轮工作"、"更新一下进度"、"把这个挂到 workstream"、"开始新的工作"、或需要追踪一轮工作的状态和关联笔记时，必须使用本 skill。
 ---
 
@@ -43,17 +43,17 @@ bear-search-notes term="Workstream: <关键词>" tag="workstream"
 
 使用表格格式，包含以下字段：
 
-| 字段 | 说明 |
-| ---: | --- |
-| **Repo** | 当前 workstream 的主 repo |
-| **Workspace** | 工作空间路径，如 `~/bear-brain` |
-| **Status** | `idea` / `active` / `blocked` / `shipped` / `archived` |
-| **Goal** | 这一轮工作最终想达成什么，必须简洁明确 |
-| **Scope** | 当前纳入的需求/问题范围，范围变化时只更新这里 |
-| **Target release** | 计划版本（可空） |
-| **Actual release** | 实际版本（可空） |
-| **Primary artifact** | 主要产出物 |
-| **Phase** | 当前阶段，如 `development` |
+|                 字段 | 说明                                                   |
+| -------------------: | ------------------------------------------------------ |
+|             **Repo** | 当前 workstream 的主 repo                              |
+|        **Workspace** | 工作空间路径，如 `~/bear-brain`                        |
+|           **Status** | `idea` / `active` / `blocked` / `shipped` / `archived` |
+|             **Goal** | 这一轮工作最终想达成什么，必须简洁明确                 |
+|            **Scope** | 当前纳入的需求/问题范围，范围变化时只更新这里          |
+|   **Target release** | 计划版本（可空）                                       |
+|   **Actual release** | 实际版本（可空）                                       |
+| **Primary artifact** | 主要产出物                                             |
+|            **Phase** | 当前阶段，如 `development`                             |
 
 ### 维护 Related Notes
 
@@ -91,21 +91,22 @@ bear-search-notes term="Workstream: <关键词>" tag="workstream"
 
 ## Meta
 
-| 字段 | 值 |
-| ---: | --- |
-| Repo | <primary repo> |
-| Workspace | `<workspace path>` |
-| Status | idea / active / blocked / shipped / archived |
-| Goal | <这一轮工作最终目标> |
-| Scope | <当前纳入范围> |
-| Target release | <计划版本，可空> |
-| Actual release | <实际版本，可空> |
-| Primary artifact | <主要产出物> |
-| Phase | <阶段> |
+|             字段 | 值                                           |
+| ---------------: | -------------------------------------------- |
+|             Repo | <primary repo>                               |
+|        Workspace | `<workspace path>`                           |
+|           Status | idea / active / blocked / shipped / archived |
+|             Goal | <这一轮工作最终目标>                         |
+|            Scope | <当前纳入范围>                               |
+|   Target release | <计划版本，可空>                             |
+|   Actual release | <实际版本，可空>                             |
+| Primary artifact | <主要产出物>                                 |
+|            Phase | <阶段>                                       |
 
 ## Related Notes
 
 - [[<note title>]]
+
   - `NOTE-ID`
   - 简单描述
 

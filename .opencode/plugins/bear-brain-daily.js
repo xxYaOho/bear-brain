@@ -17,7 +17,7 @@ export const BearBrainDailyPlugin = async ({ $, worktree }) => {
         sawWork = true
       }
 
-      if (event.type === "tui.command.execute" && getCommand(event) === "/compact") {
+      if (event.type === "tui.command.execute" && getCommand(event) === "session.compact") {
         await appendDaily()
         return
       }

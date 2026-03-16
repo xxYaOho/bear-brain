@@ -1,5 +1,5 @@
 ---
-name: bearbrain/admission
+name: admission
 description: 当写入 Bear-Brain 内容但目标层不明确时使用本 skill。当用户要保存、记录、整理内容，却还没确定应写到 workstream、repo/*、book/*、#memory、#memory/daily 或 docs/* 时，用本 skill 判断去向。目标已明确时可跳过，直接进入对应 skill。
 ---
 

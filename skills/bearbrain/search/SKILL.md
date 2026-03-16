@@ -1,5 +1,5 @@
 ---
-name: bearbrain/search
+name: search
 description: 执行任何 Bear-Brain 检索时使用本 skill。当用户或 agent 需要查找笔记、搜索记忆、检索文档、或按标签过滤时，必须使用本 skill。通常由 context-router 决定模式后调用，也可直接使用。
 ---
 
@@ -13,13 +13,13 @@ description: 执行任何 Bear-Brain 检索时使用本 skill。当用户或 age
 
 ## 模式总览
 
-| 模式 | 说明 | 使用场景 |
-| --- | --- | --- |
-| `memory_db` | 本地 Vector DB 查询 | 语义相似度检索 |
-| `note_refs` | 显式笔记引用 | 已知 note id 或内链 |
-| `docs_scope` | docs/*.md 搜索 | 项目稳定文档检索 |
-| `tags_and` | 多标签 AND 搜索 | 多标签交叉过滤 |
-| `hybrid` | 组合模式 | 需要交叉验证 |
+| 模式         | 说明                | 使用场景            |
+| ------------ | ------------------- | ------------------- |
+| `memory_db`  | 本地 Vector DB 查询 | 语义相似度检索      |
+| `note_refs`  | 显式笔记引用        | 已知 note id 或内链 |
+| `docs_scope` | docs/\*.md 搜索     | 项目稳定文档检索    |
+| `tags_and`   | 多标签 AND 搜索     | 多标签交叉过滤      |
+| `hybrid`     | 组合模式            | 需要交叉验证        |
 
 ## 默认索引范围
 
@@ -51,6 +51,7 @@ python memory_worker.py search --project-root . --query "搜索文本"
 默认行为就是先走 `memory_db`，并在本地库中查询；当前 CLI 没有暴露 `--mode` 或 `--limit` 参数。
 
 或在 Python 中：
+
 ```python
 from bear_brain.search import search_memory_db
 results = search_memory_db(query="搜索文本", limit=5)
@@ -199,9 +200,9 @@ EOF
 
 格式化为 markdown table：
 
-| Title | ID |
-| --- | --- |
-| ... | ... |
+| Title | ID  |
+| ----- | --- |
+| ...   | ... |
 
 显示每个 tag 的命中数作为上下文（如 "repo/bear-brain: 142 notes, workstream: 38 notes → 交集: 5 notes"）。
 
@@ -220,13 +221,13 @@ EOF
 
 ### 边界情况处理
 
-| 情况 | 处理方式 |
-| --- | --- |
-| Tag 不在列表中 | 告知用户，停止 |
-| Tag 名称模糊 | 显示所有匹配路径及笔记数，让用户选择 |
-| 交集为空 | 告知用户"未找到同时持有这些标签的笔记" |
-| 单个 tag | 直接返回该 tag 的笔记（无需交集） |
-| per_tag 中 count=0 | 警告：该 tag 存在但无笔记 |
+| 情况               | 处理方式                               |
+| ------------------ | -------------------------------------- |
+| Tag 不在列表中     | 告知用户，停止                         |
+| Tag 名称模糊       | 显示所有匹配路径及笔记数，让用户选择   |
+| 交集为空           | 告知用户"未找到同时持有这些标签的笔记" |
+| 单个 tag           | 直接返回该 tag 的笔记（无需交集）      |
+| per_tag 中 count=0 | 警告：该 tag 存在但无笔记              |
 
 ---
 

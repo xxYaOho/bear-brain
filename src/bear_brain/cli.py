@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import load_settings
 from .daily_hook import DailyHookEntry, append_daily_entry, should_write_daily
 from .docs_publish import publish_doc
-from .memory_store import ensure_schema
+from .memory_store import ensure_schema, upsert_document
 from .promote import apply_promote_to_files
-from .search import search_memory_db
+from .search import make_ollama_embedder, search_memory_db
 from .search_index import sync_local_sources
 
 
@@ -125,7 +126,37 @@ def _promote_yesterday(
     if daily_file is None or memory_file is None:
         raise SystemExit("promote-yesterday requires --daily-file and --memory-file")
     apply_promote_to_files(daily_file, memory_file)
+    _embed_memory_file(project_root, memory_file)
     return 0
+
+
+def _embed_memory_file(project_root: Path, memory_file: Path) -> None:
+    settings = load_settings(project_root)
+    if not memory_file.exists():
+        return
+
+    try:
+        embedder = make_ollama_embedder(
+            base_url=settings.ollama_base_url,
+            model=settings.embedding_model,
+            expected_dim=512,
+        )
+    except Exception:
+        return
+
+    content = memory_file.read_text(encoding="utf-8")
+    embedding = embedder(content)
+    updated_at = datetime.now(timezone.utc).isoformat()
+
+    upsert_document(
+        settings.memory_db,
+        source="memory",
+        source_id=str(memory_file),
+        title=memory_file.stem,
+        content=content,
+        updated_at=updated_at,
+        embedding=embedding,
+    )
 
 
 def main() -> int:
