@@ -9,13 +9,15 @@
 - 本地 SQLite memory store
 - 本地 `ollama + sqlite-vec` 检索路径
 - `path/docs/*` 最小发布骨架
-- 本地 CLI：`bootstrap`、`promote-yesterday`、`search`、`publish-doc`
+- 本地 CLI：`bootstrap`、`promote-yesterday`、`search`、`publish-doc`、`append-daily`
+- OpenCode 项目级 daily hook 原型
 
 当前不覆盖：
 - 远程服务
 - 多设备同步
 - Bear 内部数据库直连
 - 完整产品级提炼策略
+- Bear 作为 daily 唯一真源的自动写入链
 
 ## Behavior
 - 默认继承入口始终是 `#memory`
@@ -24,6 +26,7 @@
 - 向量维度固定为 `512`，启动时必须校验
 - Bear `repo/*` 不进入默认向量索引，只做显式读取
 - `path/docs/*` 只收稳定文档，不收讨论稿
+- `append-daily` 当前追加到仓库内 `daily/*.md`，作为 OpenCode 集成的第一阶段原型路径
 
 ## Constraints
 - 第一阶段保持本地优先
@@ -35,10 +38,10 @@
 
 ## Acceptance
 满足以下条件可视为第一阶段规格达成：
-- 本地 CLI 可以建库、提炼、检索、发布文档
+- 本地 CLI 可以建库、提炼、检索、发布文档、追加 daily
 - `ollama` 真实 embed 调用成功
 - `qwen3-embedding:0.6b` 返回维度实测为 `512`
 - 全量测试与 lint 通过
 
 ## Notes
-当前 SPEC 面向第一阶段本地原型，后续进入产品化阶段时再扩展为更完整的系统规格。
+当前 SPEC 面向第一阶段本地原型。下一阶段将重点处理 memory 主轴全流程优化，并把 daily 自动记录从本地文件链收敛到 Bear 单一真源。
