@@ -11,6 +11,30 @@ from .search import search_memory_db
 from .search_index import sync_local_sources
 
 
+def _default_memory_file(project_root: Path) -> Path | None:
+    candidate = project_root / "memory.md"
+    return candidate if candidate.exists() else None
+
+
+def _default_daily_dir(project_root: Path) -> Path | None:
+    candidate = project_root / "daily"
+    return candidate if candidate.exists() else None
+
+
+def _default_docs_dir(project_root: Path) -> Path | None:
+    candidate = project_root / "docs"
+    return candidate if candidate.exists() else None
+
+
+def _latest_daily_file(project_root: Path) -> Path | None:
+    daily_dir = _default_daily_dir(project_root)
+    if daily_dir is None:
+        return None
+
+    candidates = sorted(path for path in daily_dir.glob("*.md") if path.is_file())
+    return candidates[-1] if candidates else None
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="memory_worker.py")
     subparsers = parser.add_subparsers(dest="command")
@@ -57,6 +81,9 @@ def _search(
     docs_dir: Path | None,
 ) -> int:
     settings = load_settings(project_root)
+    memory_file = memory_file or _default_memory_file(project_root)
+    daily_dir = daily_dir or _default_daily_dir(project_root)
+    docs_dir = docs_dir or _default_docs_dir(project_root)
     sync_local_sources(
         settings.memory_db,
         memory_file=memory_file,
@@ -74,6 +101,8 @@ def _promote_yesterday(
     daily_file: Path | None,
     memory_file: Path | None,
 ) -> int:
+    daily_file = daily_file or _latest_daily_file(project_root)
+    memory_file = memory_file or _default_memory_file(project_root)
     if daily_file is None or memory_file is None:
         raise SystemExit("promote-yesterday requires --daily-file and --memory-file")
     apply_promote_to_files(daily_file, memory_file)

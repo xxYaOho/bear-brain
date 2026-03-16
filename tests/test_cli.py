@@ -138,6 +138,43 @@ def test_cli_search_can_index_local_markdown_sources(tmp_path: Path) -> None:
     assert "SPEC" in result.stdout
 
 
+def test_cli_search_discovers_default_local_sources(tmp_path: Path) -> None:
+    (tmp_path / "daily").mkdir()
+    (tmp_path / "docs" / "product").mkdir(parents=True)
+
+    (tmp_path / "memory.md").write_text(
+        "## Core Memory\n- 默认检索 memory\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "daily" / "2026-03-16.md").write_text(
+        "## Summary\n- 今天确认默认索引\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "docs" / "product" / "SPEC.md").write_text(
+        "# SPEC\n\n## Notes\n\n默认使用本地搜索\n",
+        encoding="utf-8",
+    )
+
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "memory_worker.py",
+            "search",
+            "--project-root",
+            str(tmp_path),
+            "--query",
+            "本地搜索",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "SPEC" in result.stdout
+
+
 def test_cli_search_uses_ollama_env_vars(tmp_path: Path) -> None:
     result = run(
         [
@@ -210,3 +247,57 @@ def test_cli_promote_yesterday_updates_daily_and_memory(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert "done-promoted" in daily_path.read_text(encoding="utf-8")
     assert "vector:512-dimension" in memory_path.read_text(encoding="utf-8")
+
+
+def test_cli_promote_yesterday_discovers_latest_daily_and_memory(tmp_path: Path) -> None:
+    (tmp_path / "daily").mkdir()
+    (tmp_path / "daily" / "2026-03-15.md").write_text(
+        "## Promote Status\n"
+        "- Status: pending\n"
+        "- Promoted At:\n"
+        "- Promoted To:\n\n"
+        "## Summary\n"
+        "- 今日主线：旧数据\n"
+        "- 是否有值得提炼的内容：无\n\n"
+        "## Log\n"
+        "### 2026-03-15 09:00\n"
+        "- 做了什么：旧记录\n",
+        encoding="utf-8",
+    )
+    latest_daily = tmp_path / "daily" / "2026-03-16.md"
+    latest_daily.write_text(
+        "## Promote Status\n"
+        "- Status: pending\n"
+        "- Promoted At:\n"
+        "- Promoted To:\n\n"
+        "## Summary\n"
+        "- 今日主线：验证默认发现\n"
+        "- 是否有值得提炼的内容：有\n\n"
+        "## Log\n"
+        "### 2026-03-16 09:00\n"
+        "- 发现了什么：昨天先结账，今天再开工\n",
+        encoding="utf-8",
+    )
+    memory_path = tmp_path / "memory.md"
+    memory_path.write_text(
+        "## Position\n长期经验入口\n\n## Core Memory\n- 现有规则\n",
+        encoding="utf-8",
+    )
+
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "memory_worker.py",
+            "promote-yesterday",
+            "--project-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "done-promoted" in latest_daily.read_text(encoding="utf-8")
+    assert "rule:daily-before-new-day" in memory_path.read_text(encoding="utf-8")
