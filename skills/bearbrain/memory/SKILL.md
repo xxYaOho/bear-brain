@@ -1,45 +1,45 @@
 ---
 name: bearbrain/memory
-description: Use when maintaining Bear-Brain long-term memory notes, especially the `#memory` root note or a memory topic note, after reusable knowledge has already been identified.
+description: 当需要维护 Bear-Brain 长期经验层笔记时使用，尤其是 #memory 主笔记或 memory 主题笔记。
 ---
 
 # Memory
 
-## Overview
-Use this skill to maintain the long-term experience layer in Bear-Brain.
+## 概述
+使用本 skill 来维护 Bear-Brain 的长期经验层。
 
-This skill is for direct maintenance of `#memory` and memory topic notes. It is not for raw logging and it is not the promotion step itself. Use `bearbrain/promote-memory` when the source content still lives in `#memory/daily`.
+本 skill 用于直接维护 `#memory` 和 memory 主题笔记。不适用于原始日志记录，也不承担 promote 步骤本身。当内容仍存在于 `#memory/daily` 时，使用 `bearbrain/promote-memory`。
 
-## When to use
-Use this skill when:
-- A reusable rule, method, constraint, or judgment has already been identified
-- The `#memory` root note needs to stay dense and current
-- A memory topic note needs to be created or updated
-- The root note is approaching its soft limit and should move detail into topic notes
+## 使用场景
+以下情况使用本 skill：
+- 已识别出可复用的规则、方法、约束或判断依据
+- `#memory` 主笔记需要保持精炼和最新
+- 需要创建或更新 memory 主题笔记
+- 主笔记接近软上限，需要将细节移入主题笔记
 
-Do not use this skill to store raw notes, article excerpts, or active project drafts.
+不要用本 skill 来存储原始笔记、文章摘录或活跃项目草稿。
 
-## Memory model
-### `#memory` root note
-Purpose:
-- Serve as the high-density inheritance entry point
-- Keep only the most important reusable knowledge
-- Provide recall keys and links to topic notes
+## Memory 模型
+### `#memory` 主笔记
+用途：
+- 作为高密度经验继承入口
+- 只保留最重要的可复用知识
+- 提供 Recall Keys 和主题笔记链接
 
-Rules:
-- Keep it concise
-- Prefer pointers and distilled rules over full explanations
-- Treat it as the default entry point for memory-first retrieval
+规则：
+- 保持简洁
+- 优先使用指针和提炼后的规则，而非完整解释
+- 将其视为 memory-first 检索的默认入口
 
-### Memory topic notes
-Purpose:
-- Hold stable topic-level knowledge that no longer fits in the root note
-- Preserve more context, rules, boundaries, and examples for one topic
+### Memory 主题笔记
+用途：
+- 承载不再适合放在主笔记中的稳定主题级知识
+- 为一个主题保留更多上下文、规则、边界和示例
 
-Create or update a topic note when a pattern becomes specific enough to deserve its own durable home.
+当一个模式变得足够具体，值得拥有独立持久归属时，创建或更新主题笔记。
 
-## Structure guidance
-### Root note
+## 结构指引
+### 主笔记
 ```md
 ## Position
 一句话说明 memory 的作用
@@ -55,7 +55,7 @@ Create or update a topic note when a pattern becomes specific enough to deserve 
   - 主题说明
 ```
 
-### Topic note
+### 主题笔记
 ```md
 ## Summary
 一句话说明这个主题记住了什么
@@ -71,32 +71,32 @@ Create or update a topic note when a pattern becomes specific enough to deserve 
 - 边界条件
 ```
 
-## Write decisions
-| Situation | Destination |
+## 写入决策
+| 场景 | 目标位置 |
 | --- | --- |
-| Highest-priority reusable rule | `#memory` root note |
-| Stable topic with growing detail | Topic note |
-| Raw daily observation | Do not use this skill; use `promote-memory` later |
-| Source material or article summary | Do not use this skill; route to `book/*` |
+| 最高优先级的可复用规则 | `#memory` 主笔记 |
+| 稳定主题且细节渐增 | 主题笔记 |
+| 原始 daily 观察 | 不使用本 skill；后续使用 `promote-memory` |
+| 原材料或文章摘要 | 不使用本 skill；路由到 `book/*` |
 
-## Soft-limit rule
-The root note has a soft limit.
+## 软上限规则
+主笔记有软上限。
 
-When it starts getting too large:
-- remind the user once
-- do not block writing
-- suggest a separate cleanup session
-- move detail into topic notes, leaving only high-density recall in the root note
+当它开始变得过大时：
+- 提醒用户一次
+- 不要阻止写入
+- 建议单独的清理会话
+- 将细节移入主题笔记，只在主笔记保留高密度召回内容
 
-## Common mistakes
-- Copying daily logs directly into `#memory`
-- Copying source material into `#memory` instead of `book/*`
-- Treating the root note as a full archive
-- Creating topic notes too early, before a stable theme exists
+## 常见错误
+- 将 daily 日志直接复制到 `#memory`
+- 将原材料复制到 `#memory` 而非 `book/*`
+- 将主笔记当作完整存档
+- 在稳定主题存在之前过早创建主题笔记
 
-## Final check
-Before finishing, confirm:
-- The content is truly long-term and reusable
-- The destination is correct: root note or topic note
-- The root note still reads like a dense entry point, not a storage dump
-- A topic note was created only when the theme was stable enough
+## 最终检查
+完成前确认：
+- 内容确实是长期可复用的
+- 目标位置正确：主笔记或主题笔记
+- 主笔记仍像高密度入口，而非存储倾倒场
+- 主题笔记只在主题足够稳定时才创建
