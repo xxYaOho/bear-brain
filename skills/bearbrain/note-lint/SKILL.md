@@ -132,7 +132,12 @@ description: 写完或更新任何 Bear-Brain 笔记后使用本 skill 校验结
 
 **fail if violated：**
 - 正文中出现 H1（`# 标题`）——标题由 Bear 标题字段承载
-- 标签出现在正文中（应使用 Bear 原生 tag 参数）
+- 正文中裸写标签（如 `#memory`、`#repo/bear-brain`）
+
+**pass 的例外：**
+- 正文中以代码包裹形式提及标签，如 `#memory`、`#memory/daily`
+
+也就是说，代码包裹形式，如 `#memory`，不算正文里的裸标签。
 
 **warn if violated：**
 - Related Notes 使用表格而非嵌套列表

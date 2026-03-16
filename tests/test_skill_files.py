@@ -23,3 +23,12 @@ def test_actual_skill_files_exist() -> None:
 
     for name in expected:
         assert (root / name / "SKILL.md").exists()
+
+
+def test_bear_editing_uses_code_wrapped_tags_in_body_guidance() -> None:
+    bear_editing = Path("skills/bearbrain/bear-editing/SKILL.md").read_text(encoding="utf-8")
+    note_lint = Path("skills/bearbrain/note-lint/SKILL.md").read_text(encoding="utf-8")
+
+    assert "`#memory`" in bear_editing
+    assert "裸写 `#tag`" in bear_editing
+    assert "代码包裹形式，如 `#memory`" in note_lint
