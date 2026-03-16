@@ -23,9 +23,24 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _default_embedder(query: str) -> Sequence[float]:
-    response = ollama.embed(model="qwen3-embedding:0.6b", input=query, dimensions=512)
-    return response.embeddings[0]
+def make_ollama_embedder(
+    *,
+    base_url: str,
+    model: str,
+    expected_dim: int,
+) -> Embedder:
+    client = ollama.Client(host=base_url)
+
+    def _embed(query: str) -> Sequence[float]:
+        response = client.embed(model=model, input=query, dimensions=expected_dim)
+        vector = response.embeddings[0]
+        if len(vector) != expected_dim:
+            raise ValueError(
+                f"Embedding dimension mismatch: expected {expected_dim}, got {len(vector)}"
+            )
+        return vector
+
+    return _embed
 
 
 def search_memory_db(

@@ -1,8 +1,29 @@
 from pathlib import Path
 
+import pytest
+
 from bear_brain.memory_store import ensure_schema, upsert_document
 from bear_brain.router import choose_search_modes
-from bear_brain.search import search_docs_scope, search_memory_db
+from bear_brain.search import (
+    make_ollama_embedder,
+    search_docs_scope,
+    search_memory_db,
+)
+
+
+class _FakeEmbedResponse:
+    def __init__(self, embeddings):
+        self.embeddings = embeddings
+
+
+class _FakeClient:
+    def __init__(self, host: str):
+        self.host = host
+        self.calls = []
+
+    def embed(self, *, model: str, input: str, dimensions: int):
+        self.calls.append({"model": model, "input": input, "dimensions": dimensions})
+        return _FakeEmbedResponse([[1.0] * dimensions])
 
 
 def test_router_defaults_to_memory_first() -> None:
@@ -18,6 +39,49 @@ def test_router_adds_docs_scope_for_repo_work() -> None:
 def test_router_adds_note_refs_when_explicit_refs_exist() -> None:
     modes = choose_search_modes(task_type="general", repo=None, explicit_refs=True)
     assert "note_refs" in modes
+
+
+def test_make_ollama_embedder_uses_host_model_and_dimension(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = {}
+
+    def _factory(host: str):
+        client = _FakeClient(host)
+        captured["client"] = client
+        return client
+
+    monkeypatch.setattr("bear_brain.search.ollama.Client", _factory)
+    embed = make_ollama_embedder(
+        base_url="http://127.0.0.1:11434",
+        model="qwen3-embedding:0.6b",
+        expected_dim=512,
+    )
+
+    vector = embed("hello")
+    assert len(vector) == 512
+    assert captured["client"].host == "http://127.0.0.1:11434"
+    assert captured["client"].calls[0] == {
+        "model": "qwen3-embedding:0.6b",
+        "input": "hello",
+        "dimensions": 512,
+    }
+
+
+def test_make_ollama_embedder_rejects_wrong_dimension(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _WrongClient(_FakeClient):
+        def embed(self, *, model: str, input: str, dimensions: int):
+            return _FakeEmbedResponse([[1.0, 2.0]])
+
+    monkeypatch.setattr("bear_brain.search.ollama.Client", lambda host: _WrongClient(host))
+    embed = make_ollama_embedder(
+        base_url="http://127.0.0.1:11434",
+        model="qwen3-embedding:0.6b",
+        expected_dim=512,
+    )
+
+    with pytest.raises(ValueError, match="512"):
+        embed("hello")
 
 
 def test_search_memory_db_returns_matching_document(tmp_path: Path) -> None:

@@ -91,6 +91,35 @@ def test_cli_search_returns_matching_hit(tmp_path: Path) -> None:
     assert "Memory Root" in result.stdout
 
 
+def test_cli_search_uses_ollama_env_vars(tmp_path: Path) -> None:
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "-c",
+            (
+                "from pathlib import Path; "
+                "from bear_brain.config import load_settings; "
+                f"s=load_settings(Path(r'{tmp_path}')); "
+                "print(s.ollama_base_url); "
+                "print(s.embedding_model)"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        env={
+            "PATH": __import__("os").environ["PATH"],
+            "HOME": __import__("os").environ.get("HOME", ""),
+            "BEAR_BRAIN_OLLAMA_BASE_URL": "http://localhost:9999",
+            "BEAR_BRAIN_EMBEDDING_MODEL": "custom-model",
+        },
+    )
+    assert result.returncode == 0
+    assert "http://localhost:9999" in result.stdout
+    assert "custom-model" in result.stdout
+
+
 def test_cli_promote_yesterday_updates_daily_and_memory(tmp_path: Path) -> None:
     daily_path = tmp_path / "Memory Daily 2026-03-15.md"
     memory_path = tmp_path / "memory.md"
