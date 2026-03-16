@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .daily_memory import parse_daily_memory, prepend_promote_status
 from .models import PromoteStatus
+
+_CORE_MEMORY_RE = re.compile(r"(## Core Memory\n)(?P<body>.*?)(\n## |\Z)", re.DOTALL)
 
 
 @dataclass(slots=True)
@@ -29,9 +32,7 @@ def promote_yesterday(daily_text: str, existing_topics: list[str]) -> PromoteRes
         if "512" in lowered:
             promoted_items.append("vector:512-dimension")
 
-    unique_items = [
-        item for item in dict.fromkeys(promoted_items) if item not in existing_topics
-    ]
+    unique_items = [item for item in dict.fromkeys(promoted_items) if item not in existing_topics]
     state = "done-promoted" if unique_items else "done-none"
     return PromoteResult(
         status=PromoteStatus(state=state, promoted_to=unique_items),
@@ -55,7 +56,15 @@ def apply_promote_to_files(daily_path: Path, memory_path: Path) -> PromoteResult
     if result.promoted_items:
         lines = [f"- {item}" for item in result.promoted_items]
         if "## Core Memory" in existing_memory:
-            updated_memory = existing_memory.rstrip() + "\n" + "\n".join(lines) + "\n"
+
+            def _insert(match: re.Match[str]) -> str:
+                body = match.group("body").rstrip()
+                body_lines = [line for line in body.splitlines() if line.strip()]
+                body_lines.extend(lines)
+                suffix = "\n\n## " if match.group(3) == "\n## " else ""
+                return f"## Core Memory\n{'\n'.join(body_lines)}{suffix}"
+
+            updated_memory = _CORE_MEMORY_RE.sub(_insert, existing_memory, count=1)
         else:
             updated_memory = (
                 existing_memory.rstrip() + "\n\n## Core Memory\n" + "\n".join(lines) + "\n"
