@@ -91,6 +91,53 @@ def test_cli_search_returns_matching_hit(tmp_path: Path) -> None:
     assert "Memory Root" in result.stdout
 
 
+def test_cli_search_can_index_local_markdown_sources(tmp_path: Path) -> None:
+    memory_file = tmp_path / "memory.md"
+    daily_dir = tmp_path / "daily"
+    docs_dir = tmp_path / "docs"
+
+    daily_dir.mkdir()
+    (docs_dir / "product").mkdir(parents=True)
+
+    memory_file.write_text(
+        "## Position\n长期经验入口\n\n## Core Memory\n- 固定使用 512 维 embedding\n",
+        encoding="utf-8",
+    )
+    (daily_dir / "2026-03-16.md").write_text(
+        "## Summary\n- 今日继续打磨 BB\n",
+        encoding="utf-8",
+    )
+    (docs_dir / "product" / "SPEC.md").write_text(
+        "# SPEC\n\n## Constraints\n\n默认使用本地搜索\n",
+        encoding="utf-8",
+    )
+
+    result = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "memory_worker.py",
+            "search",
+            "--project-root",
+            str(tmp_path),
+            "--query",
+            "本地搜索",
+            "--memory-file",
+            str(memory_file),
+            "--daily-dir",
+            str(daily_dir),
+            "--docs-dir",
+            str(docs_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "SPEC" in result.stdout
+
+
 def test_cli_search_uses_ollama_env_vars(tmp_path: Path) -> None:
     result = run(
         [

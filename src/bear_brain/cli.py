@@ -8,6 +8,7 @@ from .docs_publish import publish_doc
 from .memory_store import ensure_schema
 from .promote import apply_promote_to_files
 from .search import search_memory_db
+from .search_index import sync_local_sources
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
     search = subparsers.add_parser("search")
     search.add_argument("--project-root", type=Path, default=Path.cwd())
     search.add_argument("--query", required=False, default="")
+    search.add_argument("--memory-file", type=Path)
+    search.add_argument("--daily-dir", type=Path)
+    search.add_argument("--docs-dir", type=Path)
 
     publish = subparsers.add_parser("publish-doc")
     publish.add_argument("--project-root", type=Path, default=Path.cwd())
@@ -45,8 +49,20 @@ def _publish_doc(project_root: Path, doc_type: str) -> int:
     return 0
 
 
-def _search(project_root: Path, query: str) -> int:
+def _search(
+    project_root: Path,
+    query: str,
+    memory_file: Path | None,
+    daily_dir: Path | None,
+    docs_dir: Path | None,
+) -> int:
     settings = load_settings(project_root)
+    sync_local_sources(
+        settings.memory_db,
+        memory_file=memory_file,
+        daily_dir=daily_dir,
+        docs_dir=docs_dir,
+    )
     hits = search_memory_db(settings.memory_db, query=query, limit=10)
     for hit in hits:
         print(hit.title)
@@ -73,7 +89,13 @@ def main() -> int:
     if args.command == "promote-yesterday":
         return _promote_yesterday(args.project_root, args.daily_file, args.memory_file)
     if args.command == "search":
-        return _search(args.project_root, args.query)
+        return _search(
+            args.project_root,
+            args.query,
+            args.memory_file,
+            args.daily_dir,
+            args.docs_dir,
+        )
     if args.command == "publish-doc":
         return _publish_doc(args.project_root, args.doc_type)
 

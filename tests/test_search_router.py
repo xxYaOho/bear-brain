@@ -9,6 +9,7 @@ from bear_brain.search import (
     search_docs_scope,
     search_memory_db,
 )
+from bear_brain.search_index import sync_local_sources
 
 
 class _FakeEmbedResponse:
@@ -145,3 +146,38 @@ def test_search_docs_scope_returns_matching_doc(tmp_path: Path) -> None:
     hits = search_docs_scope(docs_root, query="512 维", limit=5)
     assert hits
     assert hits[0].metadata["path"].endswith("SPEC.md")
+
+
+def test_sync_local_sources_indexes_memory_daily_and_docs(tmp_path: Path) -> None:
+    db_path = tmp_path / "data" / "db" / "memory.db"
+    memory_file = tmp_path / "memory.md"
+    daily_dir = tmp_path / "daily"
+    docs_dir = tmp_path / "docs"
+
+    daily_dir.mkdir()
+    (docs_dir / "product").mkdir(parents=True)
+
+    memory_file.write_text(
+        "## Position\n长期经验入口\n\n## Core Memory\n- 固定使用 512 维 embedding\n",
+        encoding="utf-8",
+    )
+    (daily_dir / "2026-03-16.md").write_text(
+        "## Summary\n- 今天确认 memory-first\n",
+        encoding="utf-8",
+    )
+    (docs_dir / "product" / "SPEC.md").write_text(
+        "# SPEC\n\n## Constraints\n\n默认使用本地搜索\n",
+        encoding="utf-8",
+    )
+
+    count = sync_local_sources(
+        db_path,
+        memory_file=memory_file,
+        daily_dir=daily_dir,
+        docs_dir=docs_dir,
+    )
+
+    assert count == 3
+    hits = search_memory_db(db_path, query="本地搜索", limit=5)
+    assert hits
+    assert hits[0].metadata["source_id"].endswith("SPEC.md")
