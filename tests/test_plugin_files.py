@@ -7,4 +7,6 @@ def test_opencode_daily_plugin_exists() -> None:
 
     text = plugin_path.read_text(encoding="utf-8")
     assert "session.idle" in text
+    assert "tui.command.execute" in text
+    assert "/compact" in text
     assert "append-daily" in text
