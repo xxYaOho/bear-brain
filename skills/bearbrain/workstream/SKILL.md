@@ -1,6 +1,6 @@
 ---
 name: bearbrain/workstream
-description: "创建或维护 `Workstream: ...` 笔记时使用，包含 Meta、Related Notes、Notes、Task 等 section。"
+description: 创建或维护工作容器笔记时使用。当用户说"开一个新项目"、"记录一下这轮工作"、"更新一下进度"、"把这个挂到 workstream"、"开始新的工作"、或需要追踪一轮工作的状态和关联笔记时，必须使用本 skill。
 ---
 
 # Workstream
@@ -27,31 +27,41 @@ description: "创建或维护 `Workstream: ...` 笔记时使用，包含 Meta、
 
 不要用本 skill 来写 PRD、QA、FT、FB 正文，那些是 repo 活文档的职责。
 
+## 定位已有 workstream
+
+操作前先确认是否已有对应 workstream：
+
+```
+bear-search-notes term="Workstream: <关键词>" tag="workstream"
+```
+
+如果已存在，更新它；不要重复创建。
+
 ## 职责
 
 ### 维护 Meta 信息
 
 使用表格格式，包含以下字段：
 
-|                 字段 | 说明                                                         |
-| -------------------: | ------------------------------------------------------------ |
-|             **Repo** | 当前 workstream 的主 repo，一个 workstream 只应有一个主 repo |
-|        **Workspace** | 工作空间路径，如 `~/bear-brain`                              |
-|           **Status** | 状态值建议 `idea \ active \ blocked \ shipped \ archived`    |
-|             **Goal** | 这一轮工作最终想达成什么，必须简洁明确                       |
-|            **Scope** | 当前纳入的需求/问题范围，范围变化时只更新这里                |
-|   **Target release** | 计划版本（可空）                                             |
-|   **Actual release** | 实际版本（可空，用于跳版、补丁版、降版等情况）               |
-| **Primary artifact** | 主要产出物                                                   |
-|            **Phase** | 当前阶段，如 `development`                                   |
+| 字段 | 说明 |
+| ---: | --- |
+| **Repo** | 当前 workstream 的主 repo |
+| **Workspace** | 工作空间路径，如 `~/bear-brain` |
+| **Status** | `idea` / `active` / `blocked` / `shipped` / `archived` |
+| **Goal** | 这一轮工作最终想达成什么，必须简洁明确 |
+| **Scope** | 当前纳入的需求/问题范围，范围变化时只更新这里 |
+| **Target release** | 计划版本（可空） |
+| **Actual release** | 实际版本（可空） |
+| **Primary artifact** | 主要产出物 |
+| **Phase** | 当前阶段，如 `development` |
 
 ### 维护 Related Notes
 
-每条关联笔记建议同时保留：
+每条关联笔记同时保留：
 
 - Bear 内置链接 `[[<note title>]]`
-  - 笔记 ID `id: <bear note id>`
-  - 简单描述
+- 笔记 ID `NOTE-ID`
+- 简单描述
 
 原因：链接方便在 Bear 内跳转，ID 方便 agent 精确定位，简述方便 agent 快速判断要不要读该笔记。
 
@@ -69,32 +79,33 @@ description: "创建或维护 `Workstream: ...` 笔记时使用，包含 Meta、
 
 - 不写 PRD、QA、FT、FB 正文
 - 不直接承担 memory 提炼
-- 不发布到 `path/docs/*`
+- 不发布到 `docs/*`
 - 不作为 tag 容器存在（是"一条主笔记"，不是 tag 聚合）
 
 ## 推荐格式
 
+完整模板参考：`bearbrain/bear-editing/reference/workstream.md`
+
 ```markdown
 # Workstream: <name>
 
-## Meta Card
+## Meta
 
-|             Mate | Note                                         |
-| ---------------: | -------------------------------------------- |
-|             Repo | <primary repo>                               |
-|        Workspace | `<workspace path>`                           |
-|           Status | idea / active / blocked / shipped / archived |
-|             Goal | <这一轮工作最终目标>                         |
-|            Scope | <当前纳入范围>                               |
-|   Target release | <计划版本，可空>                             |
-|   Actual release | <实际版本，可空>                             |
-| Primary artifact | <主要产出物>                                 |
-|            Phase | <阶段>                                       |
+| 字段 | 值 |
+| ---: | --- |
+| Repo | <primary repo> |
+| Workspace | `<workspace path>` |
+| Status | idea / active / blocked / shipped / archived |
+| Goal | <这一轮工作最终目标> |
+| Scope | <当前纳入范围> |
+| Target release | <计划版本，可空> |
+| Actual release | <实际版本，可空> |
+| Primary artifact | <主要产出物> |
+| Phase | <阶段> |
 
 ## Related Notes
 
 - [[<note title>]]
-
   - `NOTE-ID`
   - 简单描述
 
@@ -104,18 +115,17 @@ description: "创建或维护 `Workstream: ...` 笔记时使用，包含 Meta、
 
 ## Notes
 
-这里写自然语言说明，例如：
+- <timestamp>
+  - 内容
 
-- 为什么会开启这轮 workstream
-- 当前判断
-- 范围变化原因
-- 与版本计划的偏差
-- 当前卡点与下一步
+## Task
+
+- [ ] 待办事项
 ```
 
 ## 工作流程
 
-1. 确认是否需要新的 workstream（还是复用现有的）
+1. 用 `bear-search-notes` 确认是否已有对应 workstream
 2. 创建或更新 workstream 主笔记
 3. 填写/更新 Meta 信息
 4. 添加相关笔记到 Related Notes
@@ -128,6 +138,7 @@ description: "创建或维护 `Workstream: ...` 笔记时使用，包含 Meta、
 - 把活文档正文写在 workstream 里（应该写在 repo 里）
 - Related Notes 只写链接不写 ID 和描述
 - 范围变化时创建新的 workstream 而不是更新 Scope
+- 没有先搜索就直接新建，导致重复创建
 
 ## 最终检查
 
