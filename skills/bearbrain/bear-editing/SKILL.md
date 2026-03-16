@@ -1,90 +1,111 @@
 ---
 name: bearbrain/bear-editing
-description: Use when creating or editing Bear-Brain Bear notes and you must preserve note structure, section anchors, Related Notes formatting, snapshot-before-overwrite workflow, or append-versus-overwrite safety rules.
+description: 创建或编辑 Bear-Brain 笔记时使用，必须保留笔记结构、section 锚点、Related Notes 格式、快照-覆写工作流、或追加-覆写安全规则。
 ---
 
-# Bear editing
+# Bear 笔记编辑规范
 
-## Overview
-Use this skill to decide **how** to edit a Bear-Brain note safely.
+## 概述
+使用本 skill 来决定**如何安全地**编辑一条 Bear-Brain 笔记。
 
-This skill does not decide **where** content belongs. Run `bearbrain/admission` first when routing is still unclear.
+本 skill 不决定**内容应该放在哪里**。如果路由不明确，先运行 `bearbrain/admission`。
 
-## When to use
-Use this skill when any of these are true:
-- A Bear note already has stable sections and must be updated without breaking structure
-- A long-lived note needs snapshot + overwrite instead of endless append
-- `Related Notes` needs to be added or cleaned up
-- A note needs section-level updates such as `Meta`, `Task`, `Notes`, or `Promote Status`
+## 使用场景
+以下情况使用本 skill：
+- Bear 笔记已有稳定的 section 结构，需要更新但不破坏结构
+- 长期主笔记需要快照 + 覆写，而不是无限追加
+- 需要添加或清理 `Related Notes`
+- 需要更新 `Meta`、`Task`、`Notes`、`Promote Status` 等 section
 
-Do not use this skill to decide content routing or to rewrite large note bodies without first deciding the note type.
+不要用本 skill 来决定内容路由，也不要在未确定笔记类型前就重写大量正文。
 
-## Core rules
-- Use the Bear title field for the note title; do not repeat H1 in the body
-- Use Bear native tags; do not place tags in the body
-- Keep long-lived planning and governance notes on snapshot + overwrite
-- Keep `#memory/daily` and running logs on append
-- Keep `Related Notes` as nested bullet lists, never tables
-- Mark invalid entry points with strikethrough instead of deleting them
+## 核心规则
+- 使用 Bear 标题字段作为笔记标题；不要在正文中重复 H1
+- 使用 Bear 原生标签；不要把标签写在正文中
+- 长期规划和治理笔记使用快照 + 覆写
+- `#memory/daily` 和运行日志使用追加
+- `Related Notes` 使用嵌套列表，不使用表格
+- 无效入口用删除线标记，不要直接删除
 
-## Edit decision table
-| Situation | Action |
+## 编辑决策表
+| 场景 | 操作 |
 | --- | --- |
-| Long-lived main note with structural refresh | Snapshot + overwrite |
-| `#memory/daily` log growth | Append |
-| `Notes` incremental status entry | Append |
-| `Meta`, `Task`, `Promote Status` update | Section replace |
-| No stable anchor exists | Prefer snapshot + overwrite |
+| 长期主笔记需要结构性刷新 | 快照 + 覆写 |
+| `#memory/daily` 日志增长 | 追加 |
+| `Notes` 增量状态记录 | 追加 |
+| `Meta`、`Task`、`Promote Status` 更新 | Section 替换 |
+| 没有稳定的锚点 | 优先快照 + 覆写 |
 
-## Related Notes format
+## Related Notes 格式
 ```md
-- [[note title]]
+- [[笔记标题]]
   - `NOTE-ID`
   - 描述
 
-- ~~[[old note title]]~~
+- ~~[[旧笔记标题]]~~
   - `NOTE-ID`
   - 已被新入口覆盖 / 历史参考
 ```
 
-## Anchor order
-Before editing, locate anchors in this order:
-1. Section title, such as `## Related Notes`
-2. Stable field lines, such as `- Status:`
-3. List structure or table header
-4. Delimiter blocks
+## 锚点定位顺序
+编辑前，按以下顺序定位锚点：
+1. Section 标题，如 `## Related Notes`
+2. 稳定字段行，如 `- Status:`
+3. 列表结构或表格头
+4. 分隔块
 
-If none of these are stable, stop using section-level edits and switch to snapshot + overwrite.
+如果以上都不稳定，停止使用 section 级编辑，改为快照 + 覆写。
 
-## Note-type specifics
+## 各笔记类型规范
+
 ### Workstream
-Prefer maintaining these sections only:
+建议维护以下 section：
 - `## Meta`
 - `## Related Notes`
 - `## Notes`
 - `## Task`
 
+**完整模板参考**：[reference/workstream.md](reference/workstream.md)
+
 ### Daily memory
-Always preserve:
+始终保留：
 - `## Promote Status`
 - `## Summary`
 - `## Log`
 
-### Plans and governance notes
-During trial-stage iteration, Bear is the primary draft surface.
-Repo files hold stable snapshots later.
+**完整模板参考**：[reference/daily-memory.md](reference/daily-memory.md)
 
-## Common mistakes
-- Writing tags into the body
-- Reintroducing `Related Notes` tables
-- Appending to a long-lived main note when overwrite is the right action
-- Overwriting before taking a snapshot
-- Forcing section replacement without a stable anchor
+### Memory
+维护：
+- `## Position`
+- `## Core Memory` / `## Core`
+- `## Recall Keys`
+- `## Related Notes`
 
-## Final check
-Before finishing, confirm:
-- Title still exists in Bear
-- Tags are still correct
-- Required sections still exist
-- `Related Notes` still uses nested bullets
-- A snapshot exists if this was a long-lived main note overwrite
+**完整模板参考**：[reference/memory.md](reference/memory.md)
+
+### Book
+使用通用骨架：
+- `## Summary`
+- `## Content`
+- `## My Take`
+
+**完整模板参考**：[reference/book.md](reference/book.md)
+
+### 计划与治理笔记
+试迭代阶段，Bear 是主要草稿面。Repo 文件只持有稳定快照。
+
+## 常见错误
+- 把标签写在正文中
+- 重新引入 `Related Notes` 表格
+- 长期主笔记应该覆写时却追加
+- 覆写前没有先创建快照
+- 没有稳定锚点时强制 section 替换
+
+## 最终检查
+完成前确认：
+- Bear 标题仍然存在
+- 标签仍然正确
+- 必需的 section 仍然存在
+- `Related Notes` 仍然使用嵌套列表
+- 如果是长期主笔记覆写，存在快照
