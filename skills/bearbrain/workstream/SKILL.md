@@ -37,6 +37,8 @@ bear-search-notes term="Workstream: <关键词>" tag="workstream"
 
 如果已存在，更新它；不要重复创建。
 
+更新已有 workstream 时，必须先读取当前笔记内容，再决定改哪里；不得凭记忆更新 Status、release、NOTE-ID 或 Related Notes。
+
 ## 职责
 
 ### 维护 Meta 信息
@@ -127,10 +129,11 @@ bear-search-notes term="Workstream: <关键词>" tag="workstream"
 ## 工作流程
 
 1. 用 `bear-search-notes` 确认是否已有对应 workstream
-2. 创建或更新 workstream 主笔记
-3. 填写/更新 Meta 信息
-4. 添加相关笔记到 Related Notes
-5. 在 Notes 中记录当前状态和下一步
+2. 若已存在，先打开并读取当前 Meta、Related Notes、Notes、Task；若不存在，再创建
+3. 获取真实系统时间，用于 `## Notes` 中的新时间块；不要猜测时间
+4. 填写/更新 Meta 信息
+5. 添加相关笔记到 Related Notes，链接、NOTE-ID、描述都以当前查询结果为准
+6. 在 Notes 中记录当前状态和下一步
 
 ## 常见错误
 
@@ -140,6 +143,8 @@ bear-search-notes term="Workstream: <关键词>" tag="workstream"
 - Related Notes 只写链接不写 ID 和描述
 - 范围变化时创建新的 workstream 而不是更新 Scope
 - 没有先搜索就直接新建，导致重复创建
+- 没有先读当前笔记，就凭记忆更新 Status、Target release、Actual release
+- 用估算时间追加 `## Notes`，而不取真实系统时间
 
 ## 最终检查
 
