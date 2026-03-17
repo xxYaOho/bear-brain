@@ -27,6 +27,9 @@
 - Bear `repo/*` 不进入默认向量索引，只做显式读取
 - `path/docs/*` 只收稳定文档，不收讨论稿
 - `append-daily` 当前追加到仓库内 `daily/*.md`，作为 OpenCode 集成的第一阶段原型路径
+- Bear 写入协议采用先查后写：先定位目标 note 与现有结构，再执行追加或替换
+- 禁止猜测时间、NOTE-ID、Status、Target release、Actual release 或 Related Notes 元数据
+- daily log、Notes 时间块、Promoted At 等字段必须来自真实系统时间或 Bear 当前返回值
 
 ## Constraints
 - 第一阶段保持本地优先
