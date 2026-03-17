@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-17
+
+### Changed
+- 收紧 Bear 写入协议，明确先查后写、先取真实时间、再执行追加或替换
+- 为 `#memory/daily` 与 workstream 补充写前检查，禁止凭对话上下文猜时间或元数据
+
+### Fixed
+- 修正 BearBrain 写入类规范中过于宽松的问题，明确 NOTE-ID、Status、release、Related Notes 条目必须来自当前查询结果
+- 为 note-lint 与 skill 文件补充回归测试，防止再次出现跳过 editing、猜时间、猜元数据的行为
+
 ## [0.2.0] - 2026-03-16
 
 ### Added
