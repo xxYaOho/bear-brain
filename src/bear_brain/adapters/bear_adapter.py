@@ -45,7 +45,7 @@ class BearAdapter:
 
     def is_available(self) -> bool:
         """Return whether Bear MCP is available."""
-        return self._available
+        return self._check_mcp_available()
 
     def get_memory_note(self) -> BearNote | None:
         """Fetch the #memory note.

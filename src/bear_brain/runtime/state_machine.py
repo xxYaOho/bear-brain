@@ -122,7 +122,7 @@ class PromoteStateMachine:
         )
         self._records[daily_id] = record
 
-        self._transition(record, PromoteEvent.START_PROMOTE)
+        self.transition(record, PromoteEvent.START_PROMOTE)
         return record
 
     def transition(self, record: PromoteRecord, event: PromoteEvent) -> bool:
