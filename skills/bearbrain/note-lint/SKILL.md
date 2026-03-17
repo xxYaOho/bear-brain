@@ -148,6 +148,23 @@ description: 写完或更新任何 Bear-Brain 笔记后使用本 skill 校验结
 
 ## 通用规则（所有类型）
 
+### 写入前证据
+
+在执行 lint 前，先检查本次写入说明是否包含最小证据：
+
+- 目标笔记来源：搜索结果、NOTE-ID、或明确打开的目标笔记
+- 目标 section 来源：本次写入所依赖的 section 或字段来自已读取的当前笔记
+- 真实时间来源：daily log、Notes、Promoted At 等时间字段说明来自系统时间或 Bear 返回值
+
+缺少以上任一项时，输出：
+
+```text
+[fail] write-flow > evidence: 缺少写入前证据
+  位置: 本次 Bear 写入说明
+  原因: Bear 写入必须先查后写，不能凭记忆补 NOTE-ID、Status 或时间
+  建议: 先补充搜索/打开结果、真实时间来源，再重试写入
+```
+
 **fail if violated：**
 
 - 正文中出现 H1（`# 标题`）——标题由 Bear 标题字段承载
@@ -162,6 +179,13 @@ description: 写完或更新任何 Bear-Brain 笔记后使用本 skill 校验结
 **warn if violated：**
 
 - Related Notes 使用表格而非嵌套列表
+
+### 时间与元数据规则
+
+以下情况直接 `fail`：
+
+- daily log 或 workstream `## Notes` 的时间块没有真实时间来源
+- `Promoted At`、Status、release、NOTE-ID 来自猜测或旧上下文，而不是当前查询结果
 
 ## 模板强度说明
 
