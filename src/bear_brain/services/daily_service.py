@@ -10,11 +10,10 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from ..adapters.bear_adapter import BearAdapter
-from ..daily_memory import parse_daily_memory, render_promote_status
-from ..models import DailyEntry, PromoteStatus
+from ..daily_memory import parse_daily_memory
+from ..models import DailyEntry
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +85,12 @@ class DailyService:
         try:
             daily_path.write_text(content, encoding="utf-8")
             logger.info(f"Created daily: {daily_path}")
+
+            from ..runtime.trigger import DailyCreateTrigger
+
+            trigger = DailyCreateTrigger()
+            trigger.on_daily_created(daily_id)
+
             return DailyServiceResult(
                 success=True,
                 daily_id=daily_id,

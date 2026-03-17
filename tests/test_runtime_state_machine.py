@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bear_brain.runtime.state_machine import (
     PromoteEvent,
     PromoteRecord,
@@ -145,9 +143,11 @@ class TestPromoteStateStore:
         success = store.save(record)
         assert success is True
 
-        # Load (will return None in current implementation)
+        # Load (now implemented with SQLite)
         loaded = store.load("daily-2026-03-17")
-        assert loaded is None  # Not yet implemented
+        assert loaded is not None
+        assert loaded.daily_id == "daily-2026-03-17"
+        assert loaded.state == PromoteState.DONE_PROMOTED
 
 
 class TestAutoTrigger:

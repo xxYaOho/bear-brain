@@ -13,7 +13,7 @@ from typing import Any
 
 from ..adapters.bear_adapter import BearAdapter
 from ..daily_memory import parse_daily_memory, prepend_promote_status
-from ..models import DailyEntry, PromoteStatus
+from ..models import DailyEntry
 from ..runtime.state_machine import PromoteEvent, PromoteRecord, PromoteState, PromoteStateMachine
 
 logger = logging.getLogger(__name__)

@@ -5,14 +5,15 @@ Manages the lifecycle of promote operations with proper state transitions.
 
 from __future__ import annotations
 
+import json
 import logging
+import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, auto
-from typing import Any
+from pathlib import Path
 
-from ..adapters.bear_adapter import BearAdapter, BearNote
-from ..models import PromoteStatus
+from ..adapters.bear_adapter import BearAdapter
 
 __all__ = [
     "PromoteState",
@@ -60,14 +61,44 @@ class StateTransition:
 # Define valid state transitions
 TRANSITIONS: list[StateTransition] = [
     # From PENDING
-    StateTransition(PromoteState.PENDING, PromoteEvent.START_PROMOTE, PromoteState.PROCESSING, "begin_promote"),
+    StateTransition(
+        PromoteState.PENDING,
+        PromoteEvent.START_PROMOTE,
+        PromoteState.PROCESSING,
+        "begin_promote",
+    ),
     # From PROCESSING
-    StateTransition(PromoteState.PROCESSING, PromoteEvent.PROMOTE_SUCCESS, PromoteState.DONE_PROMOTED, "record_success"),
-    StateTransition(PromoteState.PROCESSING, PromoteEvent.PROMOTE_EMPTY, PromoteState.DONE_NONE, "record_empty"),
-    StateTransition(PromoteState.PROCESSING, PromoteEvent.PROMOTE_FAILED, PromoteState.FAILED, "record_failure"),
+    StateTransition(
+        PromoteState.PROCESSING,
+        PromoteEvent.PROMOTE_SUCCESS,
+        PromoteState.DONE_PROMOTED,
+        "record_success",
+    ),
+    StateTransition(
+        PromoteState.PROCESSING,
+        PromoteEvent.PROMOTE_EMPTY,
+        PromoteState.DONE_NONE,
+        "record_empty",
+    ),
+    StateTransition(
+        PromoteState.PROCESSING,
+        PromoteEvent.PROMOTE_FAILED,
+        PromoteState.FAILED,
+        "record_failure",
+    ),
     # From FAILED
-    StateTransition(PromoteState.FAILED, PromoteEvent.RETRY, PromoteState.PROCESSING, "begin_retry"),
-    StateTransition(PromoteState.FAILED, PromoteEvent.PROMOTE_FAILED, PromoteState.MAX_RETRIES, "max_retries_reached"),
+    StateTransition(
+        PromoteState.FAILED,
+        PromoteEvent.RETRY,
+        PromoteState.PROCESSING,
+        "begin_retry",
+    ),
+    StateTransition(
+        PromoteState.FAILED,
+        PromoteEvent.PROMOTE_FAILED,
+        PromoteState.MAX_RETRIES,
+        "max_retries_reached",
+    ),
 ]
 
 
@@ -96,14 +127,20 @@ class PromoteStateMachine:
         sm.transition(record, PromoteEvent.PROMOTE_SUCCESS)
     """
 
-    def __init__(self, max_retries: int = 3) -> None:
+    def __init__(
+        self,
+        max_retries: int = 3,
+        state_store: PromoteStateStore | None = None,
+    ) -> None:
         """Initialize state machine.
 
         Args:
             max_retries: Maximum retry attempts for failed promotes.
+            state_store: Optional persistent storage for records.
         """
         self._max_retries = max_retries
         self._records: dict[str, PromoteRecord] = {}
+        self._store = state_store or PromoteStateStore()
         self._bear = BearAdapter()
 
     def start_promote(self, daily_id: str) -> PromoteRecord:
@@ -143,9 +180,7 @@ class PromoteStateMachine:
                 break
 
         if transition is None:
-            logger.warning(
-                f"Invalid transition: {record.state.name} + {event.name}"
-            )
+            logger.warning(f"Invalid transition: {record.state.name} + {event.name}")
             return False
 
         # Execute transition
@@ -157,9 +192,10 @@ class PromoteStateMachine:
         if transition.action:
             self._execute_action(record, transition.action)
 
-        logger.info(
-            f"Promote {record.daily_id}: {old_state.name} -> {transition.to_state.name}"
-        )
+        # Persist to store
+        self._store.save(record)
+
+        logger.info(f"Promote {record.daily_id}: {old_state.name} -> {transition.to_state.name}")
         return True
 
     def _execute_action(self, record: PromoteRecord, action: str) -> None:
@@ -182,14 +218,8 @@ class PromoteStateMachine:
         Returns:
             List of daily IDs in pending or failed state.
         """
-        # In real implementation, this would query Bear or database
-        # For now, return empty list
-        pending = [
-            r.daily_id
-            for r in self._records.values()
-            if r.state in (PromoteState.PENDING, PromoteState.FAILED)
-        ]
-        return pending
+        records = self._store.list_pending(days=days)
+        return [r.daily_id for r in records]
 
     def auto_trigger(self, new_daily_id: str) -> list[PromoteRecord]:
         """Auto-trigger promote when new daily is created.
@@ -220,24 +250,162 @@ class PromoteStateMachine:
 
 
 class PromoteStateStore:
-    """Persistent storage for promote records.
+    """Persistent storage for promote records using SQLite.
 
-    This would typically use Bear notes or local database.
+    Stores promote state with full durability across restarts.
     """
 
-    def __init__(self) -> None:
-        self._bear = BearAdapter()
+    def __init__(self, db_path: Path | None = None) -> None:
+        """Initialize storage with SQLite backend.
+
+        Args:
+            db_path: Path to SQLite database. Defaults to data/db/state.db.
+        """
+        if db_path is None:
+            db_path = Path("data/db/state.db")
+        self._db_path = db_path
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+
+    def _init_db(self) -> None:
+        """Create tables if they don't exist."""
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS promote_records (
+                    daily_id TEXT PRIMARY KEY,
+                    state TEXT NOT NULL,
+                    retry_count INTEGER DEFAULT 0,
+                    max_retries INTEGER DEFAULT 3,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    promoted_at TEXT,
+                    promoted_to TEXT,
+                    error_message TEXT
+                )
+            """)
+            conn.commit()
+
+    def _serialize_datetime(self, dt: datetime | None) -> str | None:
+        """Serialize datetime to ISO format string."""
+        return dt.isoformat() if dt else None
+
+    def _deserialize_datetime(self, s: str | None) -> datetime | None:
+        """Deserialize ISO format string to datetime."""
+        return datetime.fromisoformat(s) if s else None
 
     def save(self, record: PromoteRecord) -> bool:
-        """Save record to persistent storage."""
-        # Implementation would save to Bear or SQLite
-        return True
+        """Save record to persistent storage.
+
+        Args:
+            record: The promote record to save.
+
+        Returns:
+            True if save succeeded.
+        """
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO promote_records
+                    (daily_id, state, retry_count, max_retries, created_at,
+                     updated_at, promoted_at, promoted_to, error_message)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(daily_id) DO UPDATE SET
+                        state=excluded.state,
+                        retry_count=excluded.retry_count,
+                        max_retries=excluded.max_retries,
+                        updated_at=excluded.updated_at,
+                        promoted_at=excluded.promoted_at,
+                        promoted_to=excluded.promoted_to,
+                        error_message=excluded.error_message
+                    """,
+                    (
+                        record.daily_id,
+                        record.state.name,
+                        record.retry_count,
+                        record.max_retries,
+                        self._serialize_datetime(record.created_at),
+                        self._serialize_datetime(record.updated_at),
+                        self._serialize_datetime(record.promoted_at),
+                        json.dumps(record.promoted_to),
+                        record.error_message,
+                    ),
+                )
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"Failed to save promote record {record.daily_id}: {e}")
+            return False
 
     def load(self, daily_id: str) -> PromoteRecord | None:
-        """Load record from persistent storage."""
-        # Implementation would load from Bear or SQLite
-        return None
+        """Load record from persistent storage.
+
+        Args:
+            daily_id: The daily ID to load.
+
+        Returns:
+            PromoteRecord if found, None otherwise.
+        """
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    "SELECT * FROM promote_records WHERE daily_id = ?",
+                    (daily_id,),
+                ).fetchone()
+
+                if row is None:
+                    return None
+
+                return self._row_to_record(row)
+        except sqlite3.Error as e:
+            logger.error(f"Failed to load promote record {daily_id}: {e}")
+            return None
+
+    def _row_to_record(self, row: sqlite3.Row) -> PromoteRecord:
+        """Convert database row to PromoteRecord."""
+        return PromoteRecord(
+            daily_id=row["daily_id"],
+            state=PromoteState[row["state"]],
+            retry_count=row["retry_count"],
+            max_retries=row["max_retries"],
+            created_at=self._deserialize_datetime(row["created_at"]) or datetime.now(),
+            updated_at=self._deserialize_datetime(row["updated_at"]) or datetime.now(),
+            promoted_at=self._deserialize_datetime(row["promoted_at"]),
+            promoted_to=json.loads(row["promoted_to"]) if row["promoted_to"] else [],
+            error_message=row["error_message"],
+        )
 
     def list_pending(self, days: int = 7) -> list[PromoteRecord]:
-        """List all pending records."""
-        return []
+        """List all pending records from last N days.
+
+        Args:
+            days: Number of days to look back.
+
+        Returns:
+            List of records in pending or failed state.
+        """
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                cutoff = cutoff - timedelta(days=days)
+
+                rows = conn.execute(
+                    """
+                    SELECT * FROM promote_records
+                    WHERE state IN (?, ?)
+                    AND created_at >= ?
+                    ORDER BY created_at DESC
+                    """,
+                    (
+                        PromoteState.PENDING.name,
+                        PromoteState.FAILED.name,
+                        self._serialize_datetime(cutoff),
+                    ),
+                ).fetchall()
+
+                return [self._row_to_record(row) for row in rows]
+        except sqlite3.Error as e:
+            logger.error(f"Failed to list pending records: {e}")
+            return []

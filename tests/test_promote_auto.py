@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from bear_brain.runtime.state_machine import (
     PromoteEvent,
-    PromoteRecord,
     PromoteState,
     PromoteStateMachine,
 )
@@ -56,7 +51,7 @@ class TestPromoteAutoTrigger:
         sm = PromoteStateMachine()
 
         # Start a record that stays pending
-        record = sm.start_promote("daily-2026-03-17")
+        sm.start_promote("daily-2026-03-17")
         # Don't transition - it's now PROCESSING
 
         # Auto-trigger for today shouldn't find anything
@@ -131,7 +126,7 @@ class TestPromoteService:
         )
         memory_path.write_text("# Memory\n\n## Core Memory\n- existing\n", encoding="utf-8")
 
-        result = service.apply_to_files(daily_path, memory_path, "daily-test")
+        service.apply_to_files(daily_path, memory_path, "daily-test")
 
         # Verify daily was updated
         updated_daily = daily_path.read_text(encoding="utf-8")

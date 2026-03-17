@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..adapters.bear_adapter import BearAdapter, BearNote
+from ..adapters.bear_adapter import BearAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -85,32 +85,17 @@ class MemoryPreloader:
             )
 
     def _preload_from_bear(self) -> PreloadResult:
-        """Load memory from Bear note."""
-        if not self._bear.is_available():
-            logger.warning("Bear MCP not available, skipping preload")
-            return PreloadResult(
-                success=True,  # Don't fail session if Bear unavailable
-                content="",
-                source="none",
-                error="Bear MCP not available",
-            )
+        """Load memory from Bear note.
 
-        note = self._bear.get_memory_note()
-        if note is None:
-            logger.warning("#memory note not found")
-            return PreloadResult(
-                success=True,
-                content="",
-                source="none",
-                error="#memory note not found",
-            )
-
-        logger.info(f"Loaded #memory from Bear: {note.title}")
+        Note: In scheme B, Bear MCP calls are handled by host layer.
+        This method is temporarily disabled until host-to-runtime data flow is established.
+        """
+        logger.warning("Bear preload temporarily disabled - use file-based preload")
         return PreloadResult(
             success=True,
-            content=note.text,
-            source="bear",
-            error=None,
+            content="",
+            source="none",
+            error="Bear preload disabled - use BB_PRELOAD_SOURCE=file",
         )
 
     def _preload_from_file(self) -> PreloadResult:

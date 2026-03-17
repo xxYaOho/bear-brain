@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from bear_brain.runtime.preload import (
     MemoryPreloader,
@@ -64,7 +62,7 @@ class TestMemoryPreloader:
 
             assert result.success is True  # Don't fail session
             assert result.source == "none"
-            assert "not available" in result.error
+            assert "disabled" in result.error or "not available" in result.error
 
     def test_convenience_function(self, tmp_path: Path) -> None:
         """Test preload_memory convenience function."""

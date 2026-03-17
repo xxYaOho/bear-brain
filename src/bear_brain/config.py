@@ -27,10 +27,14 @@ class Settings:
     ollama_base_url: str
     embedding_model: str
     daily_global: bool
+    preload_enabled: bool
+    preload_source: str
+    preload_file_path: Path | None
 
 
 def load_settings(project_root: Path) -> Settings:
     data_dir = project_root / "data"
+    preload_file = getenv("BB_MEMORY_FILE")
     return Settings(
         project_root=project_root,
         data_dir=data_dir,
@@ -41,4 +45,7 @@ def load_settings(project_root: Path) -> Settings:
         ollama_base_url=getenv("BEAR_BRAIN_OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         embedding_model=getenv("BEAR_BRAIN_EMBEDDING_MODEL", "qwen3-embedding:0.6b"),
         daily_global=_load_strict_bool_env("BEAR_BRAIN_DAILY_GLOBAL", False),
+        preload_enabled=_load_strict_bool_env("BB_PRELOAD_ENABLED", True),
+        preload_source=getenv("BB_PRELOAD_SOURCE", "bear"),
+        preload_file_path=Path(preload_file) if preload_file else None,
     )

@@ -16,56 +16,6 @@ Usage:
 
 from __future__ import annotations
 
-# Runtime layer exports
-from .runtime.preload import (
-    MemoryPreloader,
-    PreloadResult,
-    get_preload_context,
-    preload_memory,
-)
-from .runtime.state_machine import (
-    PromoteEvent,
-    PromoteRecord,
-    PromoteState,
-    PromoteStateMachine,
-    PromoteStateStore,
-)
-from .runtime.gate import (
-    GateLevel,
-    GateResult,
-    LintService,
-    MemoryGate,
-    run_gate_check,
-    should_block_operation,
-)
-from .runtime.trigger import (
-    DailyCreateTrigger,
-    SessionStartTrigger,
-    TriggerAction,
-    TriggerConfig,
-    TriggerEvent,
-    TriggerManager,
-    TriggerType,
-    get_trigger_manager,
-)
-
-# Service layer exports
-from .services.memory_service import (
-    MemoryPreloadService,
-    MemoryService,
-    MemoryServiceResult,
-)
-from .services.daily_service import (
-    DailyHookService,
-    DailyService,
-    DailyServiceResult,
-)
-from .services.promote_service import (
-    PromoteService,
-    PromoteServiceResult,
-    promote_yesterday,
-)
-
 # Adapter layer exports
 from .adapters.bear_adapter import (
     BearAdapter,
@@ -80,13 +30,63 @@ from .adapters.opencode_adapter import (
 
 # Keep existing exports for backward compatibility
 from .cli import main
-from .config import load_settings, Settings
+from .config import Settings, load_settings
 from .models import (
     DailyEntry,
     MemoryTopic,
     PromoteStatus,
     PublishedDoc,
     SearchHit,
+)
+from .runtime.gate import (
+    GateLevel,
+    GateResult,
+    LintService,
+    MemoryGate,
+    run_gate_check,
+    should_block_operation,
+)
+
+# Runtime layer exports
+from .runtime.preload import (
+    MemoryPreloader,
+    PreloadResult,
+    get_preload_context,
+    preload_memory,
+)
+from .runtime.state_machine import (
+    PromoteEvent,
+    PromoteRecord,
+    PromoteState,
+    PromoteStateMachine,
+    PromoteStateStore,
+)
+from .runtime.trigger import (
+    DailyCreateTrigger,
+    SessionStartTrigger,
+    TriggerAction,
+    TriggerConfig,
+    TriggerEvent,
+    TriggerManager,
+    TriggerType,
+    get_trigger_manager,
+)
+from .services.daily_service import (
+    DailyHookService,
+    DailyService,
+    DailyServiceResult,
+)
+
+# Service layer exports
+from .services.memory_service import (
+    MemoryPreloadService,
+    MemoryService,
+    MemoryServiceResult,
+)
+from .services.promote_service import (
+    PromoteService,
+    PromoteServiceResult,
+    promote_yesterday,
 )
 
 __version__ = "0.2.0"

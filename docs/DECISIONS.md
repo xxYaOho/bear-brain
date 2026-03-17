@@ -1,5 +1,25 @@
 # DECISIONS
 
+## 2026-03-17 采用方案 B 架构：Host 取数，Runtime 处理逻辑
+
+### Decision
+明确分层职责：
+- **Host 层**（OpenCode/Claude adapter）：负责 Bear MCP 调用，获取原始数据后注入 runtime
+- **Runtime 层**（preload、trigger、state_machine）：负责业务逻辑，不直接调用 MCP
+- **Adapter 层**（BearAdapter）：纯数据转换，静态方法，无 MCP 客户端
+- **Store 层**（PromoteStateStore）：SQLite 持久化
+
+### Why
+避免在 Python runtime 内重复实现 MCP 客户端，保持仓库内代码聚焦业务逻辑。Host 层已有 Bear MCP 能力，通过 payload/file 注入即可。
+
+### Current State
+- Runtime 闭环已完成（auto-promote、状态持久化、真实落盘）
+- File/payload 降级链可用
+- Host 层 MCP 调用待后续实现
+
+### Revisit Trigger
+当 host 层需要更复杂的双向交互时，评估是否需要 runtime 回调机制。
+
 ## 2026-03-15 Memory-first 作为默认继承路径
 
 ### Decision

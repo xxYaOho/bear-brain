@@ -6,11 +6,11 @@ Manages automated triggers for memory workflows.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +105,7 @@ class TriggerManager:
             actions_executed.append(config.action)
             self._history.append((datetime.now(), event.trigger_type, success))
 
-            logger.info(
-                f"Trigger fired: {event.trigger_type.name} -> {config.action.name}"
-            )
+            logger.info(f"Trigger fired: {event.trigger_type.name} -> {config.action.name}")
 
         return actions_executed
 
@@ -152,17 +150,73 @@ class TriggerManager:
 
     def _action_auto_promote(self, event: TriggerEvent) -> bool:
         """Execute auto promote action."""
+        import re
+        from pathlib import Path
+
+        from ..runtime.state_machine import PromoteEvent, PromoteStateMachine
         from ..services.promote_service import PromoteService
 
-        service = PromoteService()
-        # Get pending dailies from event payload or check
         pending = event.payload.get("pending_dailies", [])
+        daily_contents = event.payload.get("daily_contents", {})
+
+        if not pending:
+            state_machine = PromoteStateMachine()
+            pending = state_machine.get_pending_dailies(days=7)
+
+        if not pending:
+            logger.info("No pending dailies to auto-promote")
+            return True
+
+        service = PromoteService()
+        state_machine = PromoteStateMachine()
+        all_success = True
 
         for daily_id in pending:
-            # Process each pending daily
             logger.info(f"Auto-promoting: {daily_id}")
 
-        return True
+            try:
+                record = state_machine.start_promote(daily_id)
+
+                # Get daily content from payload or local file
+                if daily_id in daily_contents:
+                    daily_text = daily_contents[daily_id]
+                else:
+                    # Fallback: load from local daily file
+                    match = re.match(r"memory-daily-(\d{4}-\d{2}-\d{2})", daily_id)
+                    if not match:
+                        logger.warning(f"Invalid daily_id format: {daily_id}")
+                        continue
+                    date_str = match.group(1)
+                    daily_path = Path(f"daily/{date_str}.md")
+                    if daily_path.exists():
+                        daily_text = daily_path.read_text(encoding="utf-8")
+                    else:
+                        logger.warning(f"Daily file not found: {daily_path}")
+                        state_machine.transition(record, PromoteEvent.PROMOTE_FAILED)
+                        all_success = False
+                        continue
+
+                result = service.promote_daily(
+                    daily_text=daily_text, daily_id=daily_id, target_memory_text=None
+                )
+
+                if result.success:
+                    if result.promoted_items:
+                        state_machine.transition(record, PromoteEvent.PROMOTE_SUCCESS)
+                        logger.info(f"Successfully promoted {daily_id}: {result.promoted_items}")
+                    else:
+                        state_machine.transition(record, PromoteEvent.PROMOTE_EMPTY)
+                        logger.info(f"No items to promote for {daily_id}")
+                else:
+                    state_machine.transition(record, PromoteEvent.PROMOTE_FAILED)
+                    logger.error(f"Failed to promote {daily_id}: {result.error}")
+                    all_success = False
+
+            except Exception as e:
+                logger.error(f"Error auto-promoting {daily_id}: {e}")
+                all_success = False
+
+        return all_success
 
     def _action_sync_to_vector(self, event: TriggerEvent) -> bool:
         """Execute sync to vector DB action."""
@@ -224,18 +278,19 @@ class DailyCreateTrigger:
         # Only auto-promote if explicitly enabled
         return event.payload.get("auto_promote", False)
 
-    def on_daily_created(self, daily_id: str) -> list[TriggerAction]:
+    def on_daily_created(self, daily_id: str, auto_promote: bool = True) -> list[TriggerAction]:
         """Handle daily creation.
 
         Args:
             daily_id: ID of created daily.
+            auto_promote: Whether to auto-promote pending dailies.
 
         Returns:
             List of executed actions.
         """
         event = TriggerEvent(
             trigger_type=TriggerType.DAILY_CREATED,
-            payload={"daily_id": daily_id},
+            payload={"daily_id": daily_id, "auto_promote": auto_promote},
         )
         return self._manager.fire(event)
 

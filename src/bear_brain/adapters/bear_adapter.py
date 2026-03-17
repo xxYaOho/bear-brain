@@ -1,14 +1,12 @@
-"""Bear MCP Adapter.
+"""Bear Data Adapter.
 
-Provides a clean interface for interacting with Bear notes via MCP.
-All Bear MCP calls should go through this adapter.
+Data transformation and parsing for Bear notes.
+Does NOT make MCP calls - expects data from host layer.
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 
@@ -25,98 +23,89 @@ class BearNote:
 
 
 class BearAdapter:
-    """Adapter for Bear MCP operations.
+    """Adapter for Bear note data transformation.
 
-    This class wraps all Bear MCP calls and provides:
-    - Error handling with graceful degradation
-    - Consistent return types
-    - Logging for debugging
+    This class does NOT make MCP calls.
+    It receives note data from host layer and provides:
+    - Data parsing and validation
+    - Content extraction
+    - Format conversion
     """
 
-    def __init__(self) -> None:
-        """Initialize the adapter."""
-        self._available = self._check_mcp_available()
+    @staticmethod
+    def is_available() -> bool:
+        """Check if Bear MCP is available (host layer responsibility)."""
+        import os
 
-    def _check_mcp_available(self) -> bool:
-        """Check if Bear MCP is available."""
-        # In actual implementation, this would check MCP server status
-        # For now, assume available if running in OpenCode environment
         return os.environ.get("OPENCODE_WORKSPACE") is not None
 
-    def is_available(self) -> bool:
-        """Return whether Bear MCP is available."""
-        return self._check_mcp_available()
+    @staticmethod
+    def parse_note_data(data: dict[str, Any]) -> BearNote | None:
+        """Parse raw note data into BearNote.
 
-    def get_memory_note(self) -> BearNote | None:
-        """Fetch the #memory note.
+        Args:
+            data: Raw note data from Bear MCP.
 
         Returns:
-            BearNote if found, None otherwise.
+            BearNote if valid, None otherwise.
         """
-        if not self._available:
+        if not data:
             return None
 
-        # This would call bear_bear-search-notes with tag="memory"
-        # and bear_bear-open-note to get content
-        # For now, return None to indicate "not yet implemented"
-        return None
+        note_id = data.get("id")
+        title = data.get("title", "Untitled")
+        text = data.get("text", "")
+        tags = data.get("tags", [])
 
-    def get_daily_note(self, date_str: str) -> BearNote | None:
-        """Fetch a daily memory note for specific date.
-
-        Args:
-            date_str: Date in format "YYYY-MM-DD"
-
-        Returns:
-            BearNote if found, None otherwise.
-        """
-        if not self._available:
+        if not note_id:
             return None
-        return None
 
-    def search_pending_dailies(self, days: int = 7) -> list[BearNote]:
-        """Search for pending daily notes in the last N days.
+        return BearNote(
+            id=note_id,
+            title=title,
+            text=text,
+            tags=tags if isinstance(tags, list) else [],
+            created=data.get("created"),
+            modified=data.get("modified"),
+        )
 
-        Args:
-            days: Number of days to look back (default: 7)
-
-        Returns:
-            List of BearNote objects with pending status.
-        """
-        if not self._available:
-            return []
-        return []
-
-    def update_note(self, note_id: str, text: str) -> bool:
-        """Update a note's content.
+    @staticmethod
+    def extract_daily_date(title: str) -> str | None:
+        """Extract date from daily note title.
 
         Args:
-            note_id: The note ID to update
-            text: New content
+            title: Note title.
 
         Returns:
-            True if successful, False otherwise.
+            Date string (YYYY-MM-DD) if found, None otherwise.
         """
-        if not self._available:
-            return False
-        return False
+        import re
 
-    def create_note(
-        self,
-        title: str,
-        text: str,
-        tags: list[str] | None = None,
-    ) -> BearNote | None:
-        """Create a new note.
+        match = re.search(r"(\d{4}-\d{2}-\d{2})", title)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def is_memory_note(title: str) -> bool:
+        """Check if title indicates a memory note (not daily).
 
         Args:
-            title: Note title
-            text: Note content
-            tags: Optional list of tags
+            title: Note title.
 
         Returns:
-            BearNote if created, None otherwise.
+            True if it's a memory note, False if daily/workstream.
         """
-        if not self._available:
-            return None
-        return None
+        lowered = title.lower()
+        return "daily" not in lowered and "workstream" not in lowered
+
+    @staticmethod
+    def is_pending_daily(text: str) -> bool:
+        """Check if daily note has pending status.
+
+        Args:
+            text: Note content.
+
+        Returns:
+            True if pending, False otherwise.
+        """
+        lowered = text.lower()
+        return "pending" in lowered or "status: pending" in lowered

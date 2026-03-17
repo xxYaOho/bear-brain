@@ -8,10 +8,11 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from ..adapters.bear_adapter import BearAdapter, BearNote
+from ..adapters.bear_adapter import BearAdapter
 from ..memory_store import ensure_schema, upsert_document
 from ..search import make_ollama_embedder, search_memory_db
 
@@ -160,9 +161,9 @@ class MemoryService:
                 embedding = None
 
             # Upsert document
-            from datetime import datetime, timezone
+            from datetime import datetime
 
-            updated_at = datetime.now(timezone.utc).isoformat()
+            updated_at = datetime.now(UTC).isoformat()
             upsert_document(
                 db_path,
                 source="memory",
@@ -257,19 +258,14 @@ class MemoryService:
             return re.sub(pattern, _insert, memory_text, count=1, flags=re.DOTALL)
         else:
             # Create new section
-            return (
-                memory_text.rstrip()
-                + "\n\n## Core Memory\n"
-                + "\n".join(lines)
-                + "\n"
-            )
+            return memory_text.rstrip() + "\n\n## Core Memory\n" + "\n".join(lines) + "\n"
 
 
 class MemoryPreloadService:
     """Service for preloading memory at session start.
 
-    This service provides a clean interface for the runtime layer
-to preload memory content.
+        This service provides a clean interface for the runtime layer
+    to preload memory content.
     """
 
     def __init__(
@@ -294,15 +290,7 @@ to preload memory content.
         """
         context: dict[str, Any] = {}
 
-        # Try Bear first if enabled
-        if self._bear and self._bear.is_available():
-            note = self._bear.get_memory_note()
-            if note:
-                context["memory_content"] = note.text
-                context["memory_source"] = "bear"
-                return context
-
-        # Fall back to file
+        # Load from file (Bear MCP calls handled by host layer in scheme B)
         content = self._memory_service.load_memory()
         if content:
             context["memory_content"] = content

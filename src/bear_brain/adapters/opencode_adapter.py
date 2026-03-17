@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from ..runtime.trigger import TriggerEvent, TriggerManager, TriggerType
 
@@ -180,19 +181,62 @@ class CommandRegistry:
     def _cmd_promote(self, daily_id: str | None = None) -> dict[str, Any]:
         """Handle /bb-promote command.
 
-        Manually trigger promote for a daily note.
+        Manually trigger promote for a daily note and persist results to files.
 
         Args:
             daily_id: Optional daily ID (defaults to yesterday).
         """
+        from datetime import datetime, timedelta
+        from pathlib import Path
+
+        from ..runtime.state_machine import PromoteStateStore
+        from ..services.daily_service import DailyService
         from ..services.promote_service import PromoteService
 
-        service = PromoteService()
-        # Implementation would load daily and promote
+        if daily_id is None:
+            yesterday = datetime.now() - timedelta(days=1)
+            date_str = yesterday.strftime("%Y-%m-%d")
+            daily_id = f"memory-daily-{date_str}"
+
+        daily_service = DailyService()
+        daily_path = daily_service.get_daily_path(daily_id)
+
+        if daily_path is None:
+            return {
+                "success": False,
+                "promoted_items": [],
+                "state": "failed",
+                "error": f"Daily not found: {daily_id}",
+            }
+
+        # Determine memory file path
+        memory_path = Path("memory.md")
+        if not memory_path.exists():
+            # Try to find memory file in project root
+            memory_path = Path.cwd() / "memory.md"
+
+        promote_service = PromoteService()
+
+        # Use apply_to_files to update both daily and memory files
+        result = promote_service.apply_to_files(daily_path, memory_path, daily_id)
+
+        # Persist state to store
+        state_store = PromoteStateStore()
+        if result.record:
+            state_store.save(result.record)
+
+        if result.record:
+            state = result.record.state.name.lower().replace("_", "-")
+        else:
+            state = "failed"
 
         return {
-            "success": True,
-            "message": f"Promote triggered for {daily_id or 'yesterday'}",
+            "success": result.success,
+            "promoted_items": result.promoted_items,
+            "state": state,
+            "daily_updated": result.success,
+            "memory_updated": result.success and len(result.promoted_items) > 0,
+            "error": result.error,
         }
 
     def _cmd_memory_status(self) -> dict[str, Any]:
@@ -200,18 +244,36 @@ class CommandRegistry:
 
         Show memory system status.
         """
+        from ..runtime.preload import preload_memory
+        from ..runtime.state_machine import PromoteStateStore
         from ..services.daily_service import DailyService
 
         daily_service = DailyService()
-        recent_dailies = daily_service.list_dailies(days=7)
+        dailies = daily_service.list_dailies(days=30)
+
+        state_store = PromoteStateStore()
+        pending_records = state_store.list_pending(days=30)
+
+        preload_result = preload_memory()
+
+        last_promote = None
+        for record in state_store.list_pending(days=365):
+            if record.promoted_at:
+                last_promote = record.promoted_at.isoformat()
+                break
 
         return {
             "success": True,
-            "status": {
-                "recent_dailies": len(recent_dailies),
-                "dailies": recent_dailies,
-                "session_id": self._adapter._session_id,
+            "preload_status": {
+                "loaded": preload_result.success and bool(preload_result.content),
+                "source": preload_result.source,
             },
+            "promote_status": {
+                "pending_count": len(pending_records),
+                "last_promote": last_promote,
+            },
+            "session_id": self._adapter._session_id,
+            "dailies_count": len(dailies),
         }
 
     def _cmd_memory_lint(self, content: str | None = None) -> dict[str, Any]:

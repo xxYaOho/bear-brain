@@ -9,7 +9,7 @@ Note: Import from bear_brain.cli for backward compatibility.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..config import load_settings
@@ -154,7 +154,7 @@ def _embed_memory_file(project_root: Path, memory_file: Path) -> None:
 
     content = memory_file.read_text(encoding="utf-8")
     embedding = embedder(content)
-    updated_at = datetime.now(timezone.utc).isoformat()
+    updated_at = datetime.now(UTC).isoformat()
 
     upsert_document(
         settings.memory_db,
