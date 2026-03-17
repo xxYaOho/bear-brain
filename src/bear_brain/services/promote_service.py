@@ -14,7 +14,7 @@ from typing import Any
 from ..adapters.bear_adapter import BearAdapter
 from ..daily_memory import parse_daily_memory, prepend_promote_status
 from ..models import DailyEntry, PromoteStatus
-from ..runtime.state_machine import PromoteRecord, PromoteState, PromoteStateMachine
+from ..runtime.state_machine import PromoteEvent, PromoteRecord, PromoteState, PromoteStateMachine
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class PromoteService:
             if not promoted_items:
                 # Nothing to promote
                 self._state_machine.transition(
-                    record, PromoteStateMachine.PromoteEvent.PROMOTE_EMPTY
+                    record, PromoteEvent.PROMOTE_EMPTY
                 )
                 record.state = PromoteState.DONE_NONE
                 return PromoteServiceResult(
@@ -99,7 +99,7 @@ class PromoteService:
             # Promote successful
             record.promoted_to = promoted_items
             self._state_machine.transition(
-                record, PromoteStateMachine.PromoteEvent.PROMOTE_SUCCESS
+                record, PromoteEvent.PROMOTE_SUCCESS
             )
 
             return PromoteServiceResult(
@@ -112,7 +112,7 @@ class PromoteService:
         except Exception as e:
             logger.error(f"Promote failed for {daily_id}: {e}")
             self._state_machine.transition(
-                record, PromoteStateMachine.PromoteEvent.PROMOTE_FAILED
+                record, PromoteEvent.PROMOTE_FAILED
             )
             return PromoteServiceResult(
                 success=False,
