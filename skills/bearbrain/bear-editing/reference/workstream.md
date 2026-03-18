@@ -1,5 +1,11 @@
 # Workstream 模板
 
+## 编辑
+
+- **User**：workstream 主导者之一, 负责方向与 member 招募
+- **Agent**：workstream 主导者之一, 负责技术和维护, 规划团队规范, 派发任务
+- **Member**: subagent, 子智能体
+
 ## 结构
 
 ```md
@@ -42,7 +48,7 @@
 ### <name>
 ```
 
-Name:
+Member:
 Ability:
 Task:
 
@@ -89,13 +95,13 @@ Task:
 
 ### Work Notes
 
-- 由 Partner 在 workstream 期间追加，记录过程、发现、判断
+- 由 Agent 在 workstream 期间追加，记录过程、发现、判断
 - 每条以 ISO-8601 时间戳作为 H3 标题
 - 目的是方便回溯，不是流水账——只记有判断价值的内容
 
 ### Team
 
-- Partner 在招募阶段写入每个成员的 `Ability / Task`
+- Agent 在招募阶段写入每个成员的 `Ability / Task`
 - 成员只能维护自己 section 下的 `Checkpoint`，不得修改其他成员 section
 - 每个成员在独立的 git worktree 中完成任务
 
@@ -108,4 +114,4 @@ Task:
 ### Summary
 
 - `Tasks`：workstream 全部任务清单，`- [x]` 已完成，`- [ ]` 待做或进行中，由 Partner 维护
-- `Next`：每次验收通过后由 Partner 更新，记录下一步方向
+- `Next`：每次验收通过后由 Agent 更新，记录下一步方向
