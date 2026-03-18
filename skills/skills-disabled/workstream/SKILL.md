@@ -1,33 +1,123 @@
 ---
 name: workstream
-description: 创建或维护工作容器笔记时使用。当用户说"开一个新项目"、"记录一下这轮工作"、"更新一下进度"、"把这个挂到 workstream"、"开始新的工作"、或需要追踪一轮工作的状态和关联笔记时，必须使用本 skill。
+description: 创建或维护 workstream 笔记时使用。当用户说"开一个新项目"、"记录一下这轮工作"、"更新一下进度"、"把这个挂到 workstream"、"开始开发"、"招募团队"、或需要追踪一轮工作的状态和关联笔记时，必须使用本 skill。
 ---
 
 # Workstream
 
 ## 概述
 
-使用本 skill 来创建或维护工作容器主笔记。
+Workstream 是一轮工作的主容器笔记，由 User 和 Agent 共同主导。
 
-`workstream` 只管理"一轮工作"的主笔记，不承载活文档正文。它的作用是：
+**三种角色：**
 
-- 描述一轮具体工作
-- 关联本轮涉及的笔记
-- 让 agent 通过一条入口笔记理解当前工作状态
+- **User** — 方向决策、member 招募确认、Related Notes 维护
+- **Agent** — 技术规划、Team 初始化、任务拆分、Work Notes 和 Summary 维护
+- **Member（subagent）** — 在独立 git worktree 中执行任务，只维护自己的 Checkpoint
 
-## 使用场景
+完整笔记结构参考：`bear-editing/reference/workstream.md`
 
-以下情况使用本 skill：
+---
 
-- 需要开启一轮新的工作时
-- 需要更新 workstream 的状态（idea → active → shipped 等）
-- 需要把相关笔记挂到 workstream 的 Related Notes
-- 需要记录范围变化、卡点、或下一步计划
-- 需要追踪版本发布信息
+## 生命周期
 
-不要用本 skill 来写 PRD、QA、FT、FB 正文，那些是 repo 活文档的职责。
+### 阶段一：规划（Phase: planning）
 
-## 定位已有 workstream
+创建 workstream 笔记时进入此阶段。
+
+**此阶段完成：**
+
+- 初始化 Meta Card（Repo、Main Space、Goal、Scope、Phase=planning）
+- Status 设为 `idea` 或 `active`
+- Team 留空，不初始化
+
+**不做：**
+
+- 不拆任务
+- 不招募 member
+- 不初始化 Summary Tasks
+
+---
+
+### 阶段二：开发（Phase: implementation）
+
+User 或 Agent 明确进入开发阶段时触发。
+
+**此阶段完成：**
+
+1. 更新 Meta Card Phase → `implementation`
+2. 分析 Goal 和 Scope，制定任务清单
+3. 按拆分原则决定 member 数量和任务边界
+4. 初始化 Team section（每个 member 的 Ability + Task）
+5. 初始化 Summary Tasks
+
+---
+
+### 阶段三：执行中
+
+**Agent 持续维护：**
+
+- Work Notes：每次有判断价值的发现追加一条（ISO-8601 时间戳）
+- Summary Tasks：任务完成时打勾
+
+**Member 维护：**
+
+- 每个可独立验证的功能单元完成后追加 Checkpoint
+
+**Agent 验收：**
+
+- 读取 member 的 Checkpoint，对照 Task 要求验收
+- 验收通过后更新 Summary Next
+
+---
+
+### 阶段四：完成（Phase: shipped / archived）
+
+- 更新 Meta Card Status → `shipped`
+- 填写 Actual release
+- 更新 Summary Next 为空或后续方向
+
+---
+
+## Team 初始化
+
+进入开发阶段时，Agent 负责决定 member 数量和任务分配。
+
+### 拆分原则
+
+**独立性优先**：每个 member 的任务必须可以在独立 worktree 中完成，不依赖其他 member 的未完成产出。
+
+具体检查：
+
+- 两个 member 是否会修改同一个文件？→ 合并为一个 member
+- 一个 member 的输出是否是另一个 member 的输入？→ 串行执行，不并行分配
+- 两个 member 是否需要实现同一个接口或数据结构？→ 先由一个 member 定义，另一个等待或合并
+
+**粒度原则**：单个 member 的任务应该是一个可独立验证的功能单元，不要过细（每个函数一个 member）也不要过粗（整个模块一个 member）。
+
+**数量原则**：member 数量由任务的并行度决定，没有上限。如果所有任务都有依赖关系，串行执行比强行并行更安全。
+
+### Member 信息格式
+
+```md
+### <name>
+
+Member: subagent
+Ability: <这个 member 擅长什么 / 负责什么领域>
+Task: <具体任务描述，明确边界和产出物>
+```
+
+Task 描述必须包含：
+
+- 做什么
+- 边界在哪里（不做什么）
+- 产出物是什么（文件、接口、功能）
+
+---
+
+## 笔记操作规范
+
+### 定位已有 workstream
 
 操作前先确认是否已有对应 workstream：
 
@@ -35,124 +125,25 @@ description: 创建或维护工作容器笔记时使用。当用户说"开一个
 bear-search-notes term="Workstream: <关键词>" tag="workstream"
 ```
 
-如果已存在，更新它；不要重复创建。
+已存在则更新，不重复创建。更新前必须先 `bear-open-note` 读取当前内容。
 
-更新已有 workstream 时，必须先读取当前笔记内容，再决定改哪里；不得凭记忆更新 Status、release、NOTE-ID 或 Related Notes。
+### 各 section 操作
 
-## 职责
+| Section        | 操作                                         | 执行者       |
+| -------------- | -------------------------------------------- | ------------ |
+| Meta Card      | `bear-replace-text` scope=section            | Agent        |
+| Related Notes  | 由 Agent 维护，User 辅助                     | Agent & User |
+| Work Notes     | `bear-add-text` 插入末尾                     | Agent        |
+| Team（初始化） | `bear-add-text` 插入末尾                     | Agent        |
+| Checkpoint     | `bear-add-text` 插入对应 member section 末尾 | Member       |
+| Summary        | `bear-replace-text` scope=section            | Agent        |
 
-### 维护 Meta 信息
-
-使用表格格式，包含以下字段：
-
-|                 字段 | 说明                                                   |
-| -------------------: | ------------------------------------------------------ |
-|             **Repo** | 当前 workstream 的主 repo                              |
-|        **Workspace** | 工作空间路径，如 `~/bear-brain`                        |
-|           **Status** | `idea` / `active` / `blocked` / `shipped` / `archived` |
-|             **Goal** | 这一轮工作最终想达成什么，必须简洁明确                 |
-|            **Scope** | 当前纳入的需求/问题范围，范围变化时只更新这里          |
-|   **Target release** | 计划版本（可空）                                       |
-|   **Actual release** | 实际版本（可空）                                       |
-| **Primary artifact** | 主要产出物                                             |
-|            **Phase** | 当前阶段，如 `development`                             |
-
-### 维护 Related Notes
-
-每条关联笔记同时保留：
-
-- Bear 内置链接 `[[<note title>]]`
-- 笔记 ID `NOTE-ID`
-- 简单描述
-
-原因：链接方便在 Bear 内跳转，ID 方便 agent 精确定位，简述方便 agent 快速判断要不要读该笔记。
-
-### 维护 Notes
-
-记录自然语言说明：
-
-- 为什么会开启这轮 workstream
-- 当前判断
-- 范围变化原因
-- 与版本计划的偏差
-- 当前卡点与下一步
-
-## 不负责
-
-- 不写 PRD、QA、FT、FB 正文
-- 不直接承担 memory 提炼
-- 不发布到 `docs/*`
-- 不作为 tag 容器存在（是"一条主笔记"，不是 tag 聚合）
-
-## 推荐格式
-
-完整模板参考：`bearbrain/bear-editing/reference/workstream.md`
-
-```markdown
-# Workstream: <name>
-
-## Meta
-
-|             字段 | 值                                           |
-| ---------------: | -------------------------------------------- |
-|             Repo | <primary repo>                               |
-|        Workspace | `<workspace path>`                           |
-|           Status | idea / active / blocked / shipped / archived |
-|             Goal | <这一轮工作最终目标>                         |
-|            Scope | <当前纳入范围>                               |
-|   Target release | <计划版本，可空>                             |
-|   Actual release | <实际版本，可空>                             |
-| Primary artifact | <主要产出物>                                 |
-|            Phase | <阶段>                                       |
-
-## Related Notes
-
-- [[<note title>]]
-
-  - `NOTE-ID`
-  - 简单描述
-
-- ~~[[<旧笔记标题>]]~~
-  - `NOTE-ID`
-  - 已被新入口覆盖 / 历史参考
-
-## Notes
-
-- <timestamp>
-  - 内容
-
-## Task
-
-- [ ] 待办事项
-```
-
-## 工作流程
-
-1. 用 `bear-search-notes` 确认是否已有对应 workstream
-2. 若已存在，先打开并读取当前 Meta、Related Notes、Notes、Task；若不存在，再创建
-3. 获取真实系统时间，用于 `## Notes` 中的新时间块；不要猜测时间
-4. 填写/更新 Meta 信息
-5. 添加相关笔记到 Related Notes，链接、NOTE-ID、描述都以当前查询结果为准
-6. 在 Notes 中记录当前状态和下一步
+---
 
 ## 常见错误
 
-- 把两个目标塞进同一个 workstream
-- 用 workstream 来聚合同类任务（应该用 Related Notes 关联）
-- 把活文档正文写在 workstream 里（应该写在 repo 里）
-- Related Notes 只写链接不写 ID 和描述
-- 范围变化时创建新的 workstream 而不是更新 Scope
-- 没有先搜索就直接新建，导致重复创建
-- 没有先读当前笔记，就凭记忆更新 Status、Target release、Actual release
-- 用估算时间追加 `## Notes`，而不取真实系统时间
-
-## 最终检查
-
-完成前确认：
-
-- Meta 各字段已正确填写
-- Related Notes 使用嵌套列表格式
-- Related Notes 包含链接 + ID + 描述
-- 状态值是有效建议值之一
-- Notes 包含当前阶段的关键信息
-- 没有把活文档正文写在 workstream 里
+- 创建时就初始化 Team（应等到进入开发阶段）
+- 两个 member 任务存在文件级依赖（会导致 merge conflict 或重复实现）
+- Task 描述没有明确边界，member 自行扩展范围
+- Work Notes 写流水账而不是判断（"改了 X 文件"不如"发现 Y 模块有耦合问题，决定先拆"）
+- 验收前没有读 Checkpoint，直接宣称完成

@@ -1,6 +1,6 @@
 # Workstream 模板
 
-## 编辑
+**三种角色：**
 
 - **User**：workstream 主导者之一, 负责方向与 member 招募
 - **Agent**：workstream 主导者之一, 负责技术和维护, 规划团队规范, 派发任务
