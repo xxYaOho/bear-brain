@@ -1,184 +1,230 @@
 ---
 name: bear-editing
-description: 编辑任何 Bear-Brain 笔记时必须使用本 skill。当用户要求创建、更新、追加、替换、清理任何 Bear 笔记内容时，本 skill 提供安全编辑协议。即使用户没有明确提到"结构"或"格式"，只要涉及 Bear 笔记写入操作，都应触发本 skill。包括：更新 workstream、写入 memory、追加日志、修改 Meta/Task/Related Notes 等所有场景。
+description: 编辑任何 Bear 笔记时必须使用本 skill。当用户要求创建、更新、追加、替换、清理任何 Bear 笔记内容时，本 skill 提供安全编辑协议。即使用户没有明确提到"结构"或"格式"，只要涉及 Bear 笔记写入操作，都应触发本 skill。包括：更新 workstream、写入 memory、追加日志、修改 Meta / Task / Related Notes 等所有场景。
 ---
 
 # Bear 笔记编辑规范
 
 ## 概述
 
-使用本 skill 来决定**如何安全地**编辑一条 Bear-Brain 笔记。
+使用本 skill 来决定**如何安全地**编辑一条 Bear 笔记。
 
-本 skill 不决定**内容应该放在哪里**。如果路由不明确，先运行 `bearbrain/admission`。
+本 skill 不决定**内容应该放在哪里**。如果路由不明确，先运行 `admission`。
 
-## 使用场景
+---
 
-以下情况使用本 skill：
+## MCP 工具速查
 
-- Bear 笔记已有稳定的 section 结构，需要更新但不破坏结构
-- 长期主笔记需要快照 + 覆写，而不是无限追加
-- 需要添加或清理 `Related Notes`
-- 需要更新 `Meta`、`Task`、`Notes`、`Promote Status` 等 section
+### bear-search-notes — 搜索
 
-不要用本 skill 来决定内容路由，也不要在未确定笔记类型前就重写大量正文。
+按关键词或 tag 搜索笔记，返回标题 + ID 列表。
 
-## 核心规则
+```
+bear-search-notes
+  term:  <关键词>         # 可选
+  tag:   <完整 tag 路径>  # 可选，如 memory/daily
+  limit: 1000
+```
 
-- 使用 Bear 标题字段作为笔记标题；不要在正文中重复 H1
-- 使用 Bear 原生标签；不要在正文中裸写 `#tag`
-- 如正文必须提及标签，统一用代码包裹形式，如 `#memory`、`#memory/daily`、`#repo/bear-brain`
-- Bear 写入一律先查后写：先搜索或打开目标笔记，再决定追加、替换或快照 + 覆写
-- 任何时间戳都必须来自真实系统时间或 Bear 当前返回值；禁止猜测、禁止沿用对话时间
-- NOTE-ID、Status、release、Related Notes 目标条目都必须来自当前查询结果；不得凭记忆填写 NOTE-ID 或元数据
-- 长期规划和治理笔记使用快照 + 覆写
-- `#memory/daily` 和运行日志使用追加
-- `Related Notes` 使用嵌套列表，不使用表格
-- 无效入口用删除线标记，不要直接删除
+> 写入前必须先搜索或打开目标笔记，拿到 NOTE-ID，禁止凭记忆填写。
+
+---
+
+### bear-open-note — 读取
+
+按 ID 读取笔记全文，包含标题、正文、tag。
+
+```
+bear-open-note
+  id: <NOTE-ID>
+```
+
+> 优先用 ID 定位，避免笔记改名导致找不到目标。
+
+---
+
+### bear-create-note — 创建
+
+```
+bear-create-note
+  title: <笔记标题>   # 渲染为 H1，禁止在 text 中重复写 # 标题
+  text:  <正文内容>   # 从正文第一行开始，不含 H1
+  tags:  <tag1,tag2>  # Bear 原生标签，逗号分隔；禁止在 text 中裸写 #tag
+```
+
+**注意：**
+
+- `title` 自动渲染为 H1，`text` 中禁止出现 `# <标题>`，否则产生双 H1
+- 正文中若需提及 tag 名称作为说明文字，用 inline code 包裹：`` `#memory` ``，避免被 Bear 解析为真实 tag
+
+---
+
+### bear-add-text — 追加 / 插入 / 替换 section
+
+Bear 官方 `/add-text` action 的封装，支持四种 mode。
+
+```
+bear-add-text
+  id:       <NOTE-ID>
+  text:     <内容>
+  header:   <section 标题文字，不含 # 符号>  # 可选
+  mode:     append | prepend | replace | replace_all
+  new_line: yes | no                          # 可选，mode=append 时生效
+```
+
+**四种 mode：**
+
+| mode          | 行为                                                    |
+| ------------- | ------------------------------------------------------- |
+| `append`      | 在 header 所在 section 末尾追加                         |
+| `prepend`     | 在 header 所在 section 开头插入                         |
+| `replace`     | 替换 header 所在 section 的内容，**保留 header 行本身** |
+| `replace_all` | 替换整篇笔记正文（含标题），慎用                        |
+
+**陷阱：**
+
+- `header` 找不到时，内容追加到笔记末尾，**不报错**——写入前必须先 `bear-open-note` 确认 header 存在
+- `mode` 必须显式指定，不可依赖默认值
+
+---
+
+### bear-replace-text — 精确文字替换
+
+替换笔记中指定的文字片段，适合修改单个字段值而不影响周围内容。
+
+```
+bear-replace-text
+  id:          <NOTE-ID>
+  old_text:    <要替换的原始文字>  # 必须与笔记中完全一致
+  replacement: <新内容>
+```
+
+**行为：**
+
+- 替换第一个匹配的 `old_text`
+- `old_text` 不存在时**静默失败**——写入前必须先 `bear-open-note` 确认原文
+
+---
+
+### bear-add-text vs bear-replace-text 选择原则
+
+| 场景                                            | 工具                                    |
+| ----------------------------------------------- | --------------------------------------- |
+| 替换整个 section 内容（如刷新 Summary、Meta）   | `bear-add-text` mode=replace            |
+| 修改 section 内某个具体字段值（如改 Status 值） | `bear-replace-text`                     |
+| 追加新内容到 section 末尾                       | `bear-add-text` mode=append             |
+| 置顶插入新内容                                  | `bear-add-text` mode=prepend            |
+| 覆写整篇笔记                                    | 快照 + `bear-add-text` mode=replace_all |
+
+---
 
 ## 强制写入流程
 
 凡是 Bear 写入，必须按以下顺序执行：
 
-1. 确认目标层；如果路由不明确，先用 `bearbrain/admission`
-2. 先搜索或打开目标笔记，拿到当前标题、NOTE-ID、现有 section 和现有字段
-3. 获取真实系统时间；若 Bear 返回更权威的当前值，优先使用 Bear 返回值
-4. 根据现有结构选择 `bear-add-text`、`bear-replace-text` 或快照 + 覆写
-5. 写入后立即运行 `bearbrain/note-lint` 做结构自检
+1. **确认路由**：目标笔记类型不明确时，先运行 `admission`
+2. **先查后写**：`bear-search-notes` 或 `bear-open-note` 拿到 NOTE-ID 和当前内容
+3. **获取真实时间**：时间戳必须来自系统时间，禁止猜测或沿用对话时间
+4. **选择操作**：按上方选择原则选择工具和 mode
+5. **写入后自检**：运行 `bearbrain/note-lint` 做结构验证
 
-缺少任一步骤，都不应宣称“已记录”或“已更新”。
+缺少任一步骤，不得宣称「已记录」或「已更新」。
+
+---
 
 ## 写入前证据清单
 
-执行写入前，至少拿到以下证据：
+执行写入前，至少拿到：
 
-- 目标 note 的 NOTE-ID 或 Bear 返回的明确匹配结果
-- 目标 section 是否存在，如 `## Log`、`## Meta`、`## Related Notes`
-- 本次要更新的关键字段当前值，如 Status、Target release、Actual release
-- 真实时间来源，用于 daily log、Notes 时间块、Promoted At 等字段
+- 目标笔记的 NOTE-ID（来自搜索或打开结果，不得凭记忆）
+- 目标 header 是否存在（`bear-add-text` 场景）
+- `bear-replace-text` 场景：old_text 的完整原文（来自 `bear-open-note`）
+- 真实时间来源（用于时间戳字段）
 
-如果证据缺失，停止写入并先补查询；禁止猜测。
+---
 
-## 正文中提及标签的规则
-
-- **禁止**裸写：`#memory`、`#memory/daily`、`#repo/bear-brain`
-- **允许**代码包裹：`#memory`、`#memory/daily`、`#repo/bear-brain`
-- 不默认把标签改写成 `tags/...`；只有在明确讨论逻辑层名而非 Bear tag 时才使用普通文字描述
-
-## 编辑决策表
-
-| 场景                                  | 操作            |
-| ------------------------------------- | --------------- |
-| 长期主笔记需要结构性刷新              | 快照 + 覆写     |
-| `#memory/daily` 日志增长              | 追加            |
-| `Notes` 增量状态记录                  | 追加            |
-| `Meta`、`Task`、`Promote Status` 更新 | Section 替换    |
-| 没有稳定的锚点                        | 优先快照 + 覆写 |
-
-## 快照操作步骤
+## 快照 + 覆写
 
 覆写长期主笔记前，必须先创建快照：
 
-1. 读取原笔记全文
-2. 用 `bear-create-note` 新建快照笔记
-   - 标题格式：`[原标题] snapshot YYYY-MM-DD`
-   - 正文：复制原笔记全文
-   - Tag：原笔记相同的 tag + `snapshot`
-3. 在原笔记 `Related Notes` 中记录快照笔记 ID
-4. 然后对原笔记执行覆写
+1. `bear-open-note` 读取原笔记全文
+2. `bear-create-note` 新建快照笔记
+   - 标题：`snapshot [原标题] (原版本)`
+   - text：原笔记全文
+3. `bear-add-text` mode=replace_all 覆写原笔记正文
+
+---
+
+## 正文中提及标签的规则
+
+- ❌ 禁止裸写："#memory"、"#memory/daily"
+- ✅ 允许 inline code："`#memory`"、"`#memory/daily`"
+
+---
 
 ## Related Notes 格式
 
 ```md
-- [[笔记标题]]
+[[笔记标题]]
 
-  - `NOTE-ID`
-  - 描述
+- `NOTE-ID`
+- 描述
 
-- ~~[[旧笔记标题]]~~
-  - `NOTE-ID`
-  - 已被新入口覆盖 / 历史参考
+~~[[旧笔记标题]]~~
+
+- `NOTE-ID`
+- - 描述
+- 已过时 / 被替代原因
 ```
 
-## 锚点定位顺序
+- 使用 `[[]]` 链接，不使用表格
+- 过时条目用删除线标记，保留不删除
 
-编辑前，按以下顺序定位锚点：
-
-1. Section 标题，如 `## Related Notes`
-2. 稳定字段行，如 `- Status:`
-3. 列表结构或表格头
-4. 分隔块
-
-如果以上都不稳定，停止使用 section 级编辑，改为快照 + 覆写。
+---
 
 ## 各笔记类型规范
 
 ### Workstream
 
-建议维护以下 section：
+Section：`## Meta Card` / `## Related Notes` / `## Work Notes` / `## Team` / `## Summary`
 
-- `## Meta`
-- `## Related Notes`
-- `## Notes`
-- `## Task`
+- **新建**：必须读 `reference/workstream.md`
+- **Meta Card 单字段更新**：`bear-replace-text`，old_text 取字段当前值
+- **Meta Card 整体刷新**：`bear-add-text` mode=replace，header=`Meta Card`
+- **Related Notes**：由 User 维护，Partner 不得擅自修改
+- **Work Notes 追加**：`bear-add-text` mode=append，header=`Work Notes`
+- **Team / Checkpoint 追加**：`bear-add-text` mode=append，header=成员名
+- **Summary 更新**：`bear-add-text` mode=replace，header=`Summary`
 
-**何时读模板**：新建 workstream 笔记时必须读；更新已有笔记时可跳过，除非结构不确定。
-**完整模板参考**：[reference/workstream.md](reference/workstream.md)
+### Daily Memory
 
-### Daily memory
+Section：`## Promote Status` / `## Summary` / `## Log`
 
-始终保留：
-
-- `## Promote Status`
-- `## Summary`
-- `## Log`
-
-**何时读模板**：新建 daily 笔记时必须读。
-**完整模板参考**：[reference/daily-memory.md](reference/daily-memory.md)
+- **新建**：必须读 `reference/daily-memory.md`
+- **Log 追加**：`bear-add-text` mode=append，header=`Log`
+- **Promote Status 更新**：`bear-add-text` mode=replace，header=`Promote Status`
 
 ### Memory
 
-维护：
+Section：`## Position` / `## Core Memory` / `## Recall Keys` / `## Related Notes`
 
-- `## Position`
-- `## Core Memory` / `## Core`
-- `## Recall Keys`
-- `## Related Notes`
-
-**何时读模板**：新建 memory 笔记或主题笔记时必须读。
-**完整模板参考**：[reference/memory.md](reference/memory.md)
+- **新建**：必须读 `reference/memory.md`
+- **新条目置顶**：`bear-add-text` mode=prepend，header=`Core Memory`
 
 ### Book
 
-使用通用骨架：
+Section：`## Summary` / `## Content` / `## My Take`
 
-- `## Summary`
-- `## Content`
-- `## My Take`
+- **新建**：必须读 `reference/book.md`
 
-**何时读模板**：新建 book 笔记时必须读。
-**完整模板参考**：[reference/book.md](reference/book.md)
-
-### 计划与治理笔记
-
-试迭代阶段，Bear 是主要草稿面。Repo 文件只持有稳定快照。
+---
 
 ## 常见错误
 
-- 把标签写在正文中
-- 重新引入 `Related Notes` 表格
-- 长期主笔记应该覆写时却追加
-- 覆写前没有先创建快照
-- 没有稳定锚点时强制 section 替换
-- 没有先搜索或打开目标笔记，就直接生成 Bear 写入内容
-- 用聊天上下文推断时间，而不查询真实系统时间
-- 凭记忆补 NOTE-ID、Status、release 或 Related Notes 条目
-
-## 最终检查
-
-完成前确认：
-
-- Bear 标题仍然存在
-- 标签仍然正确
-- 必需的 section 仍然存在
-- `Related Notes` 仍然使用嵌套列表
-- 如果是长期主笔记覆写，存在快照
+- 在 `text` 中写 `# 标题`（双 H1）
+- 在正文中裸写 "#tag"（被 Bear 解析为真实 tag）
+- 凭记忆填写 NOTE-ID、Status、时间戳
+- `bear-add-text` 前未确认 header 是否存在（header 不存在时静默追加到末尾）
+- `bear-replace-text` 前未 `bear-open-note` 确认 old_text 原文
+- 长期主笔记应覆写时却追加
+- 覆写前未创建快照
