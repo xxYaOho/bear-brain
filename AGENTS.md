@@ -6,6 +6,18 @@ Bear-Brain 是本地优先的 Bear 协作与记忆基础设施。
 
 ## Vision
 
+## Stack
+
+### Tools
+
+- Bear Note, macOS 生态的笔记应用
+
+### Tech
+
+MCP server:
+
+- [bear](https://github.com/vasylenko/claude-desktop-extension-bear-notes)
+
 ## Conventional Commits
 
 格式：`<type>(<scope>): <subject>`
