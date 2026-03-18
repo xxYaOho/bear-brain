@@ -16,8 +16,8 @@ Bear 多标签交集计算工具
 输出: JSON {count, results: [{id, title}], per_tag: [{tag, count}]}
 """
 
-import re
 import json
+import re
 import sys
 
 UUID_RE = re.compile(

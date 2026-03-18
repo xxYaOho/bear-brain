@@ -1,30 +1,30 @@
 # COMPLETIONS
 
 ## Context
-本次完成对应 Bear-Brain 第一阶段本地原型的基础落地与收尾整理。
+本次完成对应 Bear-Brain v0.3.0：memory core runtime 闭环与方案 B 架构落地。
 
-## Completed
-- 本地项目骨架、依赖、数据目录已建立
-- `#memory/daily` 解析与 `promote-memory` 最小链路已可运行
-- 本地 `memory_store`、`search`、`router`、`doc-publish`、CLI 已打通
-- `append-daily` 与 OpenCode daily hook 原型已接入
-- `memory.md`、`daily/`、`docs/` 已可进入本地索引路径
-- 关键 BearBrain skills 已与实现对齐并完成中文化整理
-- `ollama` 真实 embed 调用已验证成功
-- `qwen3-embedding:0.6b` 的实测维度已验证为 `512`
-- 全量测试和 lint 已通过
+## Completed (v0.3.0)
+- **runtime 闭环**：auto-promote 触发链、SQLite 状态持久化、跨会话恢复
+- **真实落盘**：`/bb-promote` 命令完整实现（更新 daily、追加 memory）
+- **降级链**：file/payload 降级链路可用，符合方案 B 架构
+- **架构清晰**：BearAdapter 纯数据适配、StateMachine 集成 Store、职责边界明确
+- **代码质量**：全量测试通过（93 passed）、lint 清零
 
-## Not Completed
-- `promote-memory` 仍是保守启发式，不是成熟提炼器
-- daily 自动记录仍是本地文件原型，尚未收敛到 Bear 单一真源
-- Bear 真实数据接入与试跑还未完成
-- skill 体系已可用，但仍需围绕 memory 主轴与 daily 触发继续收敛
-- 向量检索质量 benchmark 仍是初版基线，不是完整评估体系
+## Not Completed (本轮不阻断)
+- **host 层 Bear MCP 调用**：待后续实现，当前采用 file/payload 降级
+- **宿主 command 接线**：`/bb-*` 命令为仓库内 handler，待接入 OpenCode/Claude 宿主系统
+- **promote 算法**：仍是启发式，需真实使用数据优化
+
+## Architecture Decision (方案 B)
+- **Host 层**：负责 Bear MCP 调用（待实现）
+- **Runtime 层**：负责业务逻辑（preload、promote、trigger、state machine）
+- **Adapter 层**：纯数据转换（静态方法）
+- **Store 层**：SQLite 持久化
 
 ## Impact
-Bear-Brain 已从纯规划状态进入“可运行的本地原型”阶段，当前 workstream 的基础目标已达成。后续工作可以从补基础设施，转向 memory 主轴与真实使用闭环优化。
+Bear-Brain runtime 核心已闭环可用，具备 file/payload 降级能力。下一步是 host 层 MCP 接入与真实使用验证。
 
 ## Next
-- 把 daily 自动记录从本地文件链收敛到 Bear 单一真源
-- 优化 memory 主轴全流程：daily、promote、search、recall 的衔接
-- 用真实 Bear 数据验证并收敛长期可用的产品版工作流
+- host 层 Bear MCP 调用实现（注入 daily/memory 数据）
+- 宿主 command 系统接线（OpenCode/Claude 侧）
+- 真实 Bear 数据验证与 promote 算法优化

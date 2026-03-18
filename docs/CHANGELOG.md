@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-17
+
+### Added
+- 完成 memory core runtime 闭环：auto-promote 触发链、SQLite 状态持久化
+- 实现 `/bb-promote` 真实落盘路径（更新 daily 文件、追加 memory 文件）
+- 接通 promote 状态跨会话恢复（StateMachine + PromoteStateStore）
+- 支持 file/payload 降级链（符合方案 B 架构）
+
+### Changed
+- 重构 BearAdapter 为纯数据适配器（静态方法），移除 MCP 客户端职责
+- auto-promote 默认启用（`auto_promote=True`）
+- 收紧 `list_pending()` 日期计算，改用 `timedelta` 避免跨月错误
+
+### Architecture
+- 明确方案 B 职责边界：host 层负责 MCP 调用，runtime 层负责业务逻辑
+- Bear preload 当前采用 file/payload 降级链，host 层 MCP 注入待后续实现
+
+## [0.2.1] - 2026-03-17
+
+### Changed
+- 收紧 Bear 写入协议，明确先查后写、先取真实时间、再执行追加或替换
+- 为 `#memory/daily` 与 workstream 补充写前检查，禁止凭对话上下文猜时间或元数据
+
+### Fixed
+- 修正 BearBrain 写入类规范中过于宽松的问题，明确 NOTE-ID、Status、release、Related Notes 条目必须来自当前查询结果
+- 为 note-lint 与 skill 文件补充回归测试，防止再次出现跳过 editing、猜时间、猜元数据的行为
+
 ## [0.2.0] - 2026-03-16
 
 ### Added
